@@ -28,10 +28,10 @@ def info() -> typing.Dict:
 
     return {
         "apiversion": "1",
-        "author": "",  # TODO: Your Battlesnake Username
-        "color": "#888888",  # TODO: Choose color
-        "head": "default",  # TODO: Choose head
-        "tail": "default",  # TODO: Choose tail
+        "author": "6",  # TODO: Your Battlesnake Username
+        "color": "#FFC0CB",  # TODO: Choose color pink
+        "head": "pig",  # TODO: Choose head
+        "tail": "football",  # TODO: Choose tail
     }
 
 
