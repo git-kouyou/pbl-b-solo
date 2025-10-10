@@ -65,20 +65,6 @@ def move(game_state: typing.Dict) -> typing.Dict:
     impossible = [(body["x"], body["y"]) for body in game_state["you"]["body"]]
     impossible += wall1 + wall2 + wall3 + wall4
 
-    # TODO: Step 1 - Prevent your Battlesnake from moving out of bounds
-
-    # if my_head["x"] <= 0:
-    #     is_move_safe["left"] = False
-
-    # if my_head["x"] >= board_width - 1:
-    #     is_move_safe["right"] = False
-
-    # if my_head["y"] <= 0:
-    #     is_move_safe["down"] = False
-
-    # if my_head["y"] >= board_height - 1:
-    #     is_move_safe["up"] = False
-
     #壁と自分の体にぶつからないようにする
     if (my_head["x"] - 1, my_head["y"]) in impossible:
         is_move_safe["left"] = False
