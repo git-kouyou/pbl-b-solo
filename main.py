@@ -111,6 +111,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
 
     print(f"MOVE {game_state['turn']}: {next_move}")
     print(f"x:{my_head["x"]}, y:{my_head["y"]}")
+    print(f"Food: {food}")
     return {"move": next_move}
 
 
