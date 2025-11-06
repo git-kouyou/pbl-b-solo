@@ -11,3 +11,4 @@ def reverse(direction: str) -> str:
         return "left"
     else:
         return "None"
+
