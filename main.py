@@ -76,6 +76,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
 
     if not(set(data.foods) == set(GameData.previous_foods)):
         GameData.status = Status.loop
+        data.set_target_food_random()
 
     if GameData.status == Status.find_food:
         if abs(data.target_food[0] - data.head()[0]) <= 1 and abs(data.target_food[1] - data.head()[1]) <= 1:
@@ -84,7 +85,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
             next_move = data.no_foods()[0]
         elif len(data.foods_and_unsafes()) == 4:
             pass
-        elif data.target_food[0] < data.head[0]:
+        elif data.target_food[0] < data.head()[0]:
             if "left" in data.foods_and_unsafes():
                 if "up" in data.safes_around():
                     next_move = "up"
@@ -118,7 +119,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
                 next_move = "up"
     
     if GameData.status == Status.loop:
-        if game_state["you"]["health"] <= len(game_state["you"]["body"]) * 1.5:
+        if game_state["you"]["health"] <= 2:
             GameData.status = Status.eat_food
         if data.tail()[0] < data.head()[0] and "left" in data.no_foods():
             next_move = "left"
@@ -128,16 +129,16 @@ def move(game_state: typing.Dict) -> typing.Dict:
             next_move = "down"
         elif data.tail()[1] > data.head()[1] and "up" in data.no_foods():
             next_move = "up"
-        elif direction.reverse(neck_direction) in data.no_foods():
-            next_move = direction.reverse(neck_direction)
+        elif data.heading() in data.no_foods():
+            next_move = data.heading()
         else:
             if len(data.safes_around()) > 0:
                 next_move = random.choice(data.safes_around())
 
     if GameData.status == Status.eat_food:
-        route = gamedata.route_search(data=data, max_depth=10)
-        print(route[0])
-        exit(1)
+        result = []
+        gamedata.route_search_rec(max_depth=data.length(), data = data, result = result)
+        print(result)
 
     if next_move == "None":
         print("random move")

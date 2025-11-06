@@ -20,7 +20,7 @@ class GameData:
     status: Status
     initialized = False
 
-    def __init__(self, game_state: typing.Dict = None, bodies = None, foods = None) -> None:
+    def __init__(self, game_state: typing.Dict = {}, bodies = [], foods = []) -> None:
         if GameData.initialized == False:
             GameData.board_width = game_state["board"]["width"]
             GameData.board_height = game_state["board"]["height"]
@@ -33,9 +33,9 @@ class GameData:
             GameData.initialized = True
 
         #体の座標(tuple)一覧
-        self.bodies = [(body["x"], body["y"]) for body in game_state["you"]["body"]] if bodies is None else bodies
+        self.bodies = [(body["x"], body["y"]) for body in game_state["you"]["body"]] if bodies == [] else bodies
         #食べ物の座標(tuple)一覧
-        self.foods = [(food["x"], food["y"]) for food in game_state["board"]["food"]] if foods is None else foods
+        self.foods = [(food["x"], food["y"]) for food in game_state["board"]["food"]] if foods == [] else foods
         #頭の座標
         #self.head = (game_state["you"]["body"][0]["x"], game_state["you"]["body"][0]["y"])
         #尻尾の座標
@@ -48,14 +48,14 @@ class GameData:
         #方向
         #self.heading = direction.reverse(self.get_heading(self.neck, self.head)) if len(game_state["you"]["body"]) > 1 else "None"
 
-    def length(self):
-        return len(self.bodies)
-
     def head(self):
         return (self.bodies[0])
     
     def neck(self):
         return self.bodies[1] if len(self.bodies) > 1  else self.head()
+    
+    def heading(self):
+        return self.get_heading(self.neck(), self.head())
     
     def tail(self):
         return self.bodies[-1]
@@ -117,13 +117,13 @@ class GameData:
         return result
     
     def get_directions_8(self, from_pos, positions) -> typing.List[str]:
-        result: typing.List[str] = self.get_directions(self, from_pos, positions)
+        result = self.get_directions(from_pos, positions)
         if (from_pos[0] + 1, from_pos[1] + 1) in positions:
             result.append("upper_right")
         if (from_pos[0] - 1, from_pos[1] + 1) in positions:
             result.append("upper_left")
         if (from_pos[0] - 1, from_pos[1] - 1) in positions:
-            result.appned("downer_left")
+            result.append("downer_left")
         if (from_pos[0] + 1, from_pos[1] - 1) in positions:
             result.append("downer_right")
         return result
@@ -183,47 +183,41 @@ class GameData:
                 result.append("up")
         return result
 
-def route_search(max_depth: int, data: GameData) -> typing.List[typing.List[str]]:
-    result = []
-    def route_search_rec(data: GameData, route: typing.List[str] = []):
-        data = GameData(bodies=data.bodies.copy(), foods=data.foods.copy())
+def route_search_rec(max_depth: int, data: GameData, result: typing.List[typing.List[str]], route: typing.List[str] = []):
+    if len(route) >= max_depth:
+        if data.head in data.foods:
+            result.append(route.copy())
+        return
+    elif data.head() in data.foods:
+        return
+    next_moves = []
 
-        if len(route) >= max_depth: 
-            if data.head in data.foods:
-                result.append(route.copy())
-            return
-        elif data.head() in data.foods:
-            return
-        
-        next_moves = []
-        
-        if len(data.safes_around()) == 3:
-            next_moves.append(data.get_heading)
-        elif len(data.safes_around()) == 2 or len(data.safes_around()) == 1:
-            for safe in data.safes_around():
-                next_moves.append(safe)
+    if len(data.safes_around()) == 3:
+        next_moves.append(data.head)
+    elif len(data.safes_around()) == 2 or len(data.safes_around()) == 1:
+        for safe in data.safes_around():
+            next_moves.append(safe)
+    else:
+        return
+
+    for move in next_moves:
+        next_head = (0, 0)
+        current_head = data.head()
+        if move == "right":
+            next_head = (current_head[0] + 1, current_head[1])
+        elif move == "up":
+            next_head = (current_head[0], current_head[1] + 1)
+        elif move == "left":
+            next_head = (current_head[0] - 1, current_head[1])
         else:
-            return
+            next_head = (current_head[1], current_head[1] - 1)
 
-        for move in next_moves:
-            next_head = (0, 0)
-            current_head = data.head()
-            if move == "right":
-                next_head = (current_head[0] + 1, current_head[1])
-            elif move == "up":
-                next_head = (current_head[0], current_head[1] + 1)
-            elif move == "left":
-                next_head = (current_head[0] - 1, current_head[1])
-            else:
-                next_head = (current_head[1], current_head[1] - 1)
+        new_body = data.bodies.copy()
+        data.bodies.pop(0)
+        data.bodies.append(next_head)
+        route.append(move)
 
-            new_body = data.bodies.copy()
-            data.bodies.pop(0)
-            data.bodies.append(next_head)
-            route.append(move)
+        new_data = GameData(bodies=new_body, foods=data.foods)
+        route_search_rec(max_depth=max_depth, data=new_data, route=route.copy(), result=result)
 
-            new_data = GameData(bodies=new_body, foods=data.foods.copy())
-            route_search_rec(data=new_data, route=route.copy())
-        return result
-    route_search_rec(data=data, route = [])
-    return result
+    return
