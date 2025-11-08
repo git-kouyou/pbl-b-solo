@@ -15,7 +15,7 @@ import typing
 import predicates
 import direction
 from gamedata import Status, GameData
-import gamedata
+from simulation import Simulation
 
 # info is called when you create your Battlesnake on play.battlesnake.com
 # and controls your Battlesnake's appearance
@@ -43,6 +43,7 @@ def info() -> typing.Dict:
 
 # start is called when your Battlesnake begins a game
 def start(game_state: typing.Dict):
+    GameData(game_state)
     print("GAME START")
 
 # end is called when your Battlesnake finishes a game
@@ -62,65 +63,45 @@ def move(game_state: typing.Dict) -> typing.Dict:
     if data.length() <= 2:
         data.set_target_food_random()
         return {"move": random.choice(data.safes_around())}
+    
+    if len(GameData.disignated_route) == 0:
+        GameData.isDisignated = False
+        GameData.status = Status.loop
+    
+    if GameData.isDisignated and GameData.status == Status.eat_food:
+        next_move = GameData.disignated_route.pop(0)
+        print(f"Disignated Move: {next_move}")
 
     # 進行可能方向がないor一つしかない場合の処理
-    if data.length() <= 2:
-        return {"move": random.choice(data.safes_around())}
-    elif data.length() == 0:
+    if len(data.safes_around()) == 0:
         print("No safe move detected! move down!")
         next_move = "down"
         return {"move": next_move}
-    elif data.length() == 1:
+    elif len(data.safes_around()) == 1:
+        print("Only one safe move detected!")
         next_move = data.safes_around()[0]
-        return {"force move": next_move}
+        return {"move": next_move}
+
 
     if not(set(data.foods) == set(GameData.previous_foods)):
         GameData.status = Status.loop
         data.set_target_food_random()
 
     if GameData.status == Status.find_food:
-        if abs(data.target_food[0] - data.head()[0]) <= 1 and abs(data.target_food[1] - data.head()[1]) <= 1:
-            GameData.status = Status.loop
-        elif(len(data.no_foods()) == 1):
-            next_move = data.no_foods()[0]
-        elif len(data.foods_and_unsafes()) == 4:
-            pass
-        elif data.target_food[0] < data.head()[0]:
-            if "left" in data.foods_and_unsafes():
-                if "up" in data.safes_around():
-                    next_move = "up"
-                elif "down" in data.safes_around():
-                    next_move = "down"
-            elif "left" in data.no_foods():
-                next_move = "left"
-        elif data.target_food[0] > data.head()[0]:
-            if "right" in data.foods_and_unsafes():
-                if "up" in data.safes_around():
-                    next_move = "up"
-                elif "down" in data.safes_around():
-                    next_move = "down"
-            elif "right" in data.no_foods():
-                next_move = "right"
-        elif data.target_food[1] < data.head()[1]:
-            if "down" in data.foods_and_unsafes():
-                if "left" in data.safes_around():
-                    next_move = "left"
-                elif "right" in data.safes_around():
-                    next_move = "right"
-            elif "down" in data.no_foods():
-                next_move = "down"
-        elif GameData.target_food[1] > data.head()[1]:
-            if "up" in data.foods_and_unsafes():
-                if "left" in data.safes_around():
-                    next_move = "left"
-                elif "right" in data.safes_around():
-                    next_move = "right"
-            elif "up" in data.no_foods():
-                next_move = "up"
-    
+        pass
+
     if GameData.status == Status.loop:
-        if game_state["you"]["health"] <= 2:
-            GameData.status = Status.eat_food
+        if game_state["you"]["health"] <= 8:
+            simulator = Simulation(game_data=data, max_depth=game_state["you"]["health"])
+            simulator.route_search(data=data)
+            print(simulator.result)
+            if(len(simulator.result) > 0):
+                GameData.disignated_route = max(simulator.result, key = len).copy()
+                GameData.isDisignated = True
+                GameData.status = Status.eat_food
+                next_move = GameData.disignated_route.pop(0)
+                print(f"Disignated Move: {next_move}")
+                return {"move": next_move}
         if data.tail()[0] < data.head()[0] and "left" in data.no_foods():
             next_move = "left"
         elif data.tail()[0] > data.head()[0] and "right" in data.no_foods():
@@ -131,21 +112,15 @@ def move(game_state: typing.Dict) -> typing.Dict:
             next_move = "up"
         elif data.heading() in data.no_foods():
             next_move = data.heading()
-        else:
-            if len(data.safes_around()) > 0:
-                next_move = random.choice(data.safes_around())
-
-    if GameData.status == Status.eat_food:
-        result = []
-        gamedata.route_search_rec(max_depth=data.length(), data = data, result = result)
-        print(result)
+        elif len(data.no_foods()) > 0:
+            next_move = random.choice(data.no_foods())
 
     if next_move == "None":
         print("random move")
         next_move = random.choice(data.safes_around())
-
+    print(f"safes: {data.safes_around()}")
     print(f"MOVE {game_state['turn']}: {next_move}")
-    print(f"頭: {data.head()} ターゲットの食べ物: {GameData.target_food} 現在のステータス: {GameData.status}")
+    print(f"頭: {data.head()} 現在のステータス: {GameData.status}")
     GameData.previous_foods = data.foods
     return {"move": next_move}
 
