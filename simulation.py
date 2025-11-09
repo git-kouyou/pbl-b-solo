@@ -23,7 +23,7 @@ class Simulation:
         return next_head
     
     def route_search(self, data: GameData):
-        if (data.length() <= 12):
+        if (data.length() <= 40):
             self.route_search_12(data=data)
         else:
             pass
@@ -33,9 +33,8 @@ class Simulation:
         if data.head() in self.game_data.foods:
             new_body = data.bodies.copy()
             new_body.append(new_body[-1])  # 食べたら体が伸びる
-            new_data = copy.deepcopy(data)
-            new_data.bodies = new_body
-            if len(new_data.safes_around()) > 0:
+            new_data = GameData(bodies = new_body, foods = data.foods)
+            if len(new_data.safes_around()) > 0 and len(new_data.no_foods()) > 0:
                 self.result.append(route)
             return
         elif len(route) >= self.max_depth:
@@ -56,8 +55,7 @@ class Simulation:
             
             new_route = route + [move]
 
-            new_data = copy.deepcopy(data)
-            new_data.bodies = new_body
+            new_data = GameData(bodies = new_body, foods = data.foods)
             self.route_search_12(data=new_data, route=new_route)
 
     def route_search_long(self):
