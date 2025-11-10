@@ -18,13 +18,11 @@ class GameData:
     board_height: int
     board_width: int
     wall: typing.List
-    target_food: typing.Tuple[int, int]
     previous_foods = []
-    target_pos: typing.Tuple[int, int]
     status: Status = Status.loop
     disignated_route: typing.List[str] = []
     isDisignated: bool = False
-    rotate_direction: typing.List[str] = []
+    rotate_direction = []
     initialized = False
 
     def __init__(self, game_state: typing.Dict = {}, bodies = [], foods = []):
@@ -51,28 +49,58 @@ class GameData:
             GameData.initialized = True
             print("GameData initialized")
 
-        ##################
-        self.game_state = game_state
         #体の座標(tuple)一覧
-        self.bodies = [(body["x"] + 1, body["y"] + 1) for body in game_state["you"] ["body"]] if bodies == [] else bodies
+        self.bodies = []
+        if bodies == []:
+            seen = set()
+            for body in game_state["you"]["body"]:
+                pos = (body["x"] + 1, body["y"] + 1)
+                if pos not in seen:
+                    seen.add(pos)
+                    self.bodies.append(pos)
+        else:
+            self.bodies = bodies
         #食べ物の座標(tuple)一覧
         self.foods = [(food["x"] + 1, food["y"] + 1) for food in game_state["board"]["food"]] if foods == [] else foods
         #盤面のデータ
         self.board = self.generate_board()
     
     def generate_board(self):
-        result: typing.List[typing.List[int]] = [[0] * (GameData.board_width + 2) for _ in range(GameData.board_height + 2)]
-        for i in range(len(self.bodies)):
-            result[self.bodies[i][0]][self.bodies[i][1]] = len(self.bodies) - i + Type.body.value - 2
+        result = [[Type.safe.value] * (GameData.board_width + 2) for _ in range(GameData.board_height + 2)]
+        #体
+        for body in self.bodies:
+            result[body[0]][body[1]] = Type.body.value
+        if self.length() >= 3 and not self.ate_food():
+            result[self.tail()[0]][self.tail()[1]] = Type.safe.value  # 尾は次のターンに動くので安全地帯
+        #食べ物
         for food in self.foods:
-            result[food[0]][food[1]] = 1
+            result[food[0]][food[1]] = Type.food.value
+        #壁(縦)
         for i in range(GameData.board_width + 2):
             result[i][0] = Type.wall.value
             result[i][GameData.board_height + 1] = Type.wall.value
+        #壁(横)
         for j in range(GameData.board_height + 2):
             result[0][j] = Type.wall.value
             result[GameData.board_width + 1][j] = Type.wall.value
         return result
+
+    def print_board(self):
+        for x in range(GameData.board_height + 2):
+            row = ""
+            for y in range(GameData.board_width + 2):
+                if self.board[y][GameData.board_height + 1 - x] == Type.safe.value:
+                    row += ". "
+                elif self.board[y][GameData.board_height + 1 - x] == Type.food.value:
+                    row += "F "
+                elif self.board[y][GameData.board_height + 1 - x] == Type.body.value:
+                    row += "B "     
+                elif self.board[y][GameData.board_height + 1 - x] == Type.wall.value:
+                    row += "W "
+            print(row)
+
+    def ate_food(self):
+        return self.previous_foods != self.foods
 
     def head(self):
         return self.bodies[0]
@@ -88,13 +116,6 @@ class GameData:
     
     def length(self):
         return len(self.bodies)
-    
-    def unsafe_zones(self):
-        result = []
-        result = self.bodies + GameData.wall
-        if self.tail() in result:
-            result.remove(self.tail())
-        return result
     
     def unsafes_around(self):
         result = []
@@ -152,10 +173,6 @@ class GameData:
     def haeding(self):
         return self.get_heading(self.neck(), self.head())
 
-    def set_target_food(self) -> None:
-        self.target_food = random.choice(self.foods)
-        print(f"ターゲットの食べ物を設定しました: {self.target_food}")
-
     # def get_directions(self, from_pos, to_pos) -> typing.List[str]:
     #     result = []
     #     if self.board[from_pos[0] + 1][from_pos[1]] in to_pos:
@@ -191,9 +208,6 @@ class GameData:
         elif (from_pos[0], from_pos[1] - 1) == to_pos:
             direction = "down"
         return direction
-
-    def set_target_food_random(self) -> None:
-        GameData.target_food = random.choice(self.foods)
 
     def get_relative_directions(self, heading, from_pos, positions):
         result = []
@@ -240,18 +254,19 @@ class GameData:
             GameData.rotate_direction = ["up", "right"]
         
         predicate = {"up": (1, GameData.board_height), "down": (1, 1), "left": (0, 1), "right": (0, GameData.board_width)}
-        if self.head()[predicate[GameData.rotate_direction[0]][0]] == predicate[GameData.rotate_direction[0]][1]:
+        if self.head()[predicate[GameData.rotate_direction[1]][0]] == predicate[GameData.rotate_direction[1]][1]:
             GameData.rotate_direction = [GameData.rotate_direction[1], self.reverse(GameData.rotate_direction[0])]
+            print(f"Rotate direction changed to: {GameData.rotate_direction}")
 
-        if GameData.rotate_direction[0] in self.dangerous():
+        if GameData.rotate_direction[0] in self.no_foods():
             return GameData.rotate_direction[0]
-        elif GameData.rotate_direction[1] in self.dangerous():
+        elif GameData.rotate_direction[1] in self.no_foods():
             return GameData.rotate_direction[1]
         else:
-            if len(self.dangerous()) > 0:
-                return random.choice(self.dangerous())
+            if len(self.no_foods()) > 0:
+                return random.choice(self.no_foods())
             else:
-                return "None"
+                return random.choice(self.safes_around())
     
     def reverse(self, direction: str) -> str:
         if direction == "up":

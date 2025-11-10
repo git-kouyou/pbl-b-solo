@@ -55,33 +55,41 @@ def end(game_state: typing.Dict):
 def move(game_state: typing.Dict) -> typing.Dict:
     data: GameData = GameData(game_state)
     next_move = "None"
-    neck_direction = None
 
     #体が極小の時
     if data.length() <= 2:
-        data.set_target_food_random()
-        return {"move": random.choice(data.safes_around())}
+        return {"move": random.choice(data.no_foods())}
     
-    if len(GameData.disignated_route) == 0:
+    if len(GameData.disignated_route) == 0 and GameData.isDisignated:
         GameData.isDisignated = False
         GameData.status = Status.loop
 
-    if game_state["you"]["health"] <= 10 and GameData.status != Status.eat_food:
-            simulator = Simulation(game_data=data, max_depth=game_state["you"]["health"])
-            simulator.route_search(data=data)
-            print(simulator.result)
-            if(len(simulator.result) > 0):
-                GameData.disignated_route = max(simulator.result, key = len).copy()
-                GameData.isDisignated = True
-                GameData.status = Status.eat_food
-                next_move = GameData.disignated_route.pop(0)
-                print(f"Disignated Move: {next_move}")
-                return {"move": next_move}
-    
-    if GameData.isDisignated and GameData.status == Status.eat_food:
+    if GameData.isDisignated:
         next_move = GameData.disignated_route.pop(0)
         print(f"Disignated Move: {next_move}")
+        return {"move": next_move}
 
+    if game_state["you"]["health"] <= 10 and data.length() <= 12 and GameData.rotate_direction == []:
+        simulator = Simulation(game_data=data, max_depth = 10)
+        simulator.route_search_12(data = data)
+        if(len(simulator.result) > 0):
+            GameData.disignated_route = max(simulator.result, key = len).copy()
+            GameData.isDisignated = True
+            GameData.status = Status.eat_food
+            next_move = GameData.disignated_route.pop(0)
+            print(f"Disignated Move: {next_move}")
+            return {"move": next_move}
+    elif game_state["you"]["health"] <= 10:
+        simulator = Simulation(game_data = data, max_depth = 4)
+        simulator.route_search_24(data = data)
+        if(len(simulator.result) > 0):
+            GameData.disignated_route = max(simulator.result, key = len).copy()
+            GameData.isDisignated = True
+            GameData.status = Status.eat_food
+            next_move = GameData.disignated_route.pop(0)
+            print(f"Disignated Move: {next_move}")
+            return {"move": next_move}
+    
     # 進行可能方向がないor一つしかない場合の処理
     if len(data.safes_around()) == 0:
         print("No safe move detected! move down!")
@@ -92,16 +100,8 @@ def move(game_state: typing.Dict) -> typing.Dict:
         next_move = data.safes_around()[0]
         return {"move": next_move}
 
-
-    if not(set(data.foods) == set(GameData.previous_foods)):
-        GameData.status = Status.loop
-        data.set_target_food_random()
-
-    if GameData.status == Status.find_food:
-        pass
-
     if GameData.status == Status.loop:
-        if data.length() < 12:
+        if data.length() < 13:
             if data.tail()[0] < data.head()[0] and "left" in data.no_foods():
                 next_move = "left"
             elif data.tail()[0] > data.head()[0] and "right" in data.no_foods():
@@ -114,20 +114,17 @@ def move(game_state: typing.Dict) -> typing.Dict:
                 next_move = data.heading()
             elif len(data.no_foods()) > 0:
                 next_move = random.choice(data.no_foods())
-        elif data.length() < 25:
+        else:
             next_move = data.move_direction_24()
 
     if next_move == "None":
         print("random move")
         next_move = random.choice(data.safes_around())
-    print(f"safes: {data.safes_around()}")
+    print(f"safes: {data.no_foods()}")
     print(f"MOVE {game_state['turn']}: {next_move}")
-    print(f"頭: {data.head()} 現在のステータス: {GameData.status}")
+    #print(f"頭: {data.head()} 現在のステータス: {GameData.status}")
     GameData.previous_foods = data.foods
     return {"move": next_move}
-
-
-
 
 # Start server when `python main.py` is run
 if __name__ == "__main__":
