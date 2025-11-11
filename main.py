@@ -109,14 +109,16 @@ def move(game_state: typing.Dict) -> typing.Dict:
             next = [max(next, key = lambda x: distance[x])]
         elif len(next) == 0:
             next = data.no_foods()
-        
-        next_move = random.choice(next)
+        if len(next) > 0:
+            next_move = random.choice(next)
+        else:
+            next_move = random.choice(data.safes_around())
 
     if next_move == "None":
         print("random move")
         next_move = random.choice(data.safes_around())
     if DEBUG:
-        print(f"no foods: {data.no_foods()}")
+        print(f"no foods: {data.unsafes_around()}")
         print(f"MOVE {game_state['turn']}: {next_move}")
         print(f"頭: {data.head()} 現在のステータス: {GameData.status}")
     GameData.previous_foods = data.foods
