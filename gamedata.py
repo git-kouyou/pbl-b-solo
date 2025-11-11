@@ -119,14 +119,6 @@ class GameData:
     
     def unsafes_around(self):
         result = []
-        # if (self.head()[0] + 1, self.head()[1]) in self.unsafe_zones():
-        #     result.append("right")
-        # if (self.head()[0], self.head()[1] + 1) in self.unsafe_zones():
-        #     result.append("up")
-        # if (self.head()[0] - 1, self.head()[1]) in self.unsafe_zones():
-        #     result.append("left")
-        # if (self.head()[0], self.head()[1] - 1) in self.unsafe_zones():
-        #     result.append("down")
         if self.board[self.head()[0] + 1][self.head()[1]] >= Type.body.value:
             result.append("right")
         if self.board[self.head()[0]][self.head()[1] + 1] >= Type.body.value:
@@ -135,6 +127,15 @@ class GameData:
             result.append("left")
         if self.board[self.head()[0]][self.head()[1] - 1] >= Type.body.value:
             result.append("down")
+        if "right" not in result and self.board[self.head()[0] + 1][self.head()[1] + 1] >= Type.body.value and self.board[self.head()[0] + 2][self.head()[1]] >= Type.body.value and self.board[self.head()[0] + 1][self.head()[1] - 1] >= Type.body.value:
+            result.append("right")
+        if "up" not in result and self.board[self.head()[0] + 1][self.head()[1] + 1] >= Type.body.value and self.board[self.head()[0]][self.head()[1] + 2] >= Type.body.value and self.board[self.head()[0] - 1][self.head()[1] + 1] >= Type.body.value:
+            result.append("up")
+        if "left" not in result and self.board[self.head()[0] - 1][self.head()[1] + 1] >= Type.body.value and self.board[self.head()[0] - 2][self.head()[1]] >= Type.body.value and self.board[self.head()[0] - 1][self.head()[1] - 1] >= Type.body.value:
+            result.append("left")
+        if "down" not in result and self.board[self.head()[0] + 1][self.head()[1] - 1] >= Type.body.value and self.board[self.head()[0]][self.head()[1] - 2] >= Type.body.value and self.board[self.head()[0] - 1][self.head()[1] - 1] >= Type.body.value:
+            result.append("down")
+        
         return result
     
     def foods_around(self):
@@ -149,14 +150,53 @@ class GameData:
             result.append("down")
         return result
     
-    def foods_and_unsafes(self):
-        return list(set(self.foods_around()) | set(self.unsafes_around()))
-    
     def safes_around(self):
-        return list(set(["up", "down", "left", "right"]) - set(self.unsafes_around()))
+        result = [] 
+        if self.board[self.head()[0] + 1][self.head()[1]] <= Type.food.value:
+            result.append("right")
+        if self.board[self.head()[0]][self.head()[1] + 1] <= Type.food.value:
+            result.append("up")
+        if self.board[self.head()[0] - 1][self.head()[1]] <= Type.food.value:
+            result.append("left")   
+        if self.board[self.head()[0]][self.head()[1] - 1] <= Type.food.value:
+            result.append("down")
+        if "right" in result:
+            if self.board[self.head()[0] + 1][self.head()[1] + 1] >= Type.body.value and self.board[self.head()[0] + 2][self.head()[1]] >= Type.body.value and self.board[self.head()[0] + 1][self.head()[1] - 1] >= Type.body.value:
+                result.remove("right")
+        if "up" in result:
+            if self.board[self.head()[0] + 1][self.head()[1] + 1] >= Type.body.value and self.board[self.head()[0]][self.head()[1] + 2] >= Type.body.value and self.board[self.head()[0] - 1][self.head()[1] + 1] >= Type.body.value:
+                result.remove("up")
+        if "left" in result:
+            if self.board[self.head()[0] - 1][self.head()[1] + 1] >= Type.body.value and self.board[self.head()[0] - 2][self.head()[1]] >= Type.body.value and self.board[self.head()[0] - 1][self.head()[1] - 1] >= Type.body.value:
+                result.remove("left")
+        if "down" in result:
+            if self.board[self.head()[0] + 1][self.head()[1] - 1] >= Type.body.value and self.board[self.head()[0]][self.head()[1] - 2] >= Type.body.value and self.board[self.head()[0] - 1][self.head()[1] - 1] >= Type.body.value:
+                result.remove("down")
+        return result
     
     def no_foods(self):
-        return list(set(self.safes_around()) - set(self.foods_around()))
+        result = []
+        if self.board[self.head()[0] + 1][self.head()[1]] == Type.safe.value:
+            result.append("right")
+        if self.board[self.head()[0]][self.head()[1] + 1] == Type.safe.value:
+            result.append("up")
+        if self.board[self.head()[0] - 1][self.head()[1]] == Type.safe.value:
+            result.append("left")   
+        if self.board[self.head()[0]][self.head()[1] - 1] == Type.safe.value:
+            result.append("down")
+        if "right" in result:
+            if self.board[self.head()[0] + 1][self.head()[1] + 1] == Type.safe.value and self.board[self.head()[0] + 2][self.head()[1]] == Type.safe.value and self.board[self.head()[0] + 1][self.head()[1] - 1] == Type.safe.value:
+                result.remove("right")
+        if "up" in result:
+            if self.board[self.head()[0] + 1][self.head()[1] + 1] == Type.safe.value and self.board[self.head()[0]][self.head()[1] + 2] == Type.safe.value and self.board[self.head()[0] - 1][self.head()[1] + 1] == Type.safe.value:
+                result.remove("up")
+        if "left" in result:
+            if self.board[self.head()[0] - 1][self.head()[1] + 1] == Type.safe.value and self.board[self.head()[0] - 2][self.head()[1]] == Type.safe.value and self.board[self.head()[0] - 1][self.head()[1] - 1] == Type.safe.value:
+                result.remove("left")
+        if "down" in result:
+            if self.board[self.head()[0] + 1][self.head()[1] - 1] == Type.safe.value and self.board[self.head()[0]][self.head()[1] - 2] == Type.safe.value and self.board[self.head()[0] - 1][self.head()[1] - 1] == Type.safe.value:
+                result.remove("down")
+        return result
 
     def get_heading(self, from_pos, to_pos) -> str:
         direction = "None"
@@ -172,30 +212,6 @@ class GameData:
     
     def haeding(self):
         return self.get_heading(self.neck(), self.head())
-
-    # def get_directions(self, from_pos, to_pos) -> typing.List[str]:
-    #     result = []
-    #     if self.board[from_pos[0] + 1][from_pos[1]] in to_pos:
-    #         result.append("right")
-    #     if self.board[from_pos[0]][from_pos[1] + 1] in to_pos:
-    #         result.append("up")
-    #     if self.board[from_pos[0] - 1][from_pos[1]] in to_pos:
-    #         result.append("left")
-    #     if self.board[from_pos[0]][from_pos[1] - 1] in to_pos:
-    #         result.append("down")
-    #     return result
-    
-    # def get_directions_8(self, from_pos, positions) -> typing.List[str]:
-    #     result = self.get_directions(from_pos, positions)
-    #     if (from_pos[0] + 1, from_pos[1] + 1) in positions:
-    #         result.append("upper_right")
-    #     if (from_pos[0] - 1, from_pos[1] + 1) in positions:
-    #         result.append("upper_left")
-    #     if (from_pos[0] - 1, from_pos[1] - 1) in positions:
-    #         result.append("downer_left")
-    #     if (from_pos[0] + 1, from_pos[1] - 1) in positions:
-    #         result.append("downer_right")
-    #     return result
     
     def get_direction(self, from_pos, to_pos) -> str:
         direction = ""
@@ -208,65 +224,6 @@ class GameData:
         elif (from_pos[0], from_pos[1] - 1) == to_pos:
             direction = "down"
         return direction
-
-    def get_relative_directions(self, heading, from_pos, positions):
-        result = []
-        if heading == "right":
-            if (from_pos[0] + 1, from_pos[1]) in positions:
-                result.append("up")
-            if (from_pos[0], from_pos[1] + 1) in positions:
-                result.append("left")
-            if (from_pos[0] - 1, from_pos[1]) in positions:
-                result.append("down")
-            if (from_pos[0], from_pos[1] - 1) in positions:
-                result.append("right")
-        elif heading == "up": 
-            if (from_pos[0] + 1, from_pos[1]) in positions:
-                result.append("right")
-            if (from_pos[0], from_pos[1] + 1) in positions:
-                result.append("up")
-            if (from_pos[0] + 1, from_pos[1]) in positions:
-                result.append("left")
-            if (from_pos[0], from_pos[1]) in positions:
-                result.append("down")
-        elif heading == "left":
-            if (from_pos[0] + 1, from_pos[1]) in positions:
-                result.append("down")
-            if (from_pos[0], from_pos[1] + 1) in positions:
-                result.append("right")
-            if (from_pos[0] - 1, from_pos[1]) in positions:
-                result.append("up")
-            if (from_pos[0], from_pos[1] - 1) in positions:
-                result.append("left")
-        elif heading == "down":
-            if (from_pos[0] + 1, from_pos[1]) in positions:
-                result.append("left")
-            if (from_pos[0], from_pos[1] + 1) in positions:
-                result.append("down")
-            if (from_pos[0] - 1, from_pos[1]) in positions:
-                result.append("right")
-            if (from_pos[0], from_pos[1] - 1) in positions:
-                result.append("up")
-        return result
-    
-    def move_direction_24(self):
-        if GameData.rotate_direction == []:
-            GameData.rotate_direction = ["up", "right"]
-        
-        predicate = {"up": (1, GameData.board_height), "down": (1, 1), "left": (0, 1), "right": (0, GameData.board_width)}
-        if self.head()[predicate[GameData.rotate_direction[1]][0]] == predicate[GameData.rotate_direction[1]][1]:
-            GameData.rotate_direction = [GameData.rotate_direction[1], self.reverse(GameData.rotate_direction[0])]
-            print(f"Rotate direction changed to: {GameData.rotate_direction}")
-
-        if GameData.rotate_direction[0] in self.no_foods():
-            return GameData.rotate_direction[0]
-        elif GameData.rotate_direction[1] in self.no_foods():
-            return GameData.rotate_direction[1]
-        else:
-            if len(self.no_foods()) > 0:
-                return random.choice(self.no_foods())
-            else:
-                return random.choice(self.safes_around())
     
     def reverse(self, direction: str) -> str:
         if direction == "up":
@@ -279,15 +236,3 @@ class GameData:
             return "left"
         else:
             return "None"
-        
-    def dangerous(self):
-        result = []
-        if self.board[self.head()[0] + 1][self.head()[1] + 1] >= Type.body.value and self.board[self.head()[0] + 1][self.head()[1] - 1] >= Type.body.value:
-            result.append("right")
-        if self.board[self.head()[0] - 1][self.head()[1] + 1] >= Type.body.value and self.board[self.head()[0] + 1][self.head()[1] + 1] >= Type.body.value:
-            result.append("up")
-        if self.board[self.head()[0] - 1][self.head()[1] + 1] >= Type.body.value and self.board[self.head()[0] - 1][self.head()[1] - 1] >= Type.body.value:
-            result.append("left")
-        if self.board[self.head()[0] + 1][self.head()[1] - 1] >= Type.body.value and self.board[self.head()[0] - 1][self.head()[1] - 1] >= Type.body.value:
-            result.append("down")
-        return result

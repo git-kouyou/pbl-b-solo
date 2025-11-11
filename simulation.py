@@ -26,20 +26,35 @@ class Simulation:
     
     def route_search_12(self, data: GameData, route: typing.List[str] = []):
         if data.head() in self.game_data.foods:
-            new_body = data.bodies.copy()
-            new_body.append(new_body[-1])  # 食べたら体が伸びる
-            new_data = GameData(bodies = new_body, foods = data.foods)
+            data.bodies.append((0 , 0))  # 食べたら体が伸びる
+            new_data = GameData(bodies = data.bodies, foods = data.foods)
             if len(new_data.safes_around()) > 0 and len(new_data.no_foods()) > 0:
                 self.result.append(route)
             return
-        
         if len(route) >= self.max_depth:
             return
 
         if len(data.safes_around()) == 0:
             return
         
-        for move in data.safes_around():
+        next = []
+        distance = {"up": data.head()[1] - data.tail()[1],
+                    "down": data.tail()[1] - data.head()[1],
+                    "right": data.head()[0] - data.tail()[0],
+                    "left": data.tail()[0] - data.head()[0]}
+        
+        if data.length() <= 8:
+            next = data.safes_around()
+        else:
+            for move in data.safes_around():
+                if distance[move] > 0 and move in data.safes_around():
+                    next.append(move)
+            if len(next) == 2:
+                next = [min(next, key = lambda x: distance[x])]
+            elif len(next) == 0:
+                next = data.safes_around()
+            
+        for move in next:
             current_head = data.head()
             next_head = self.next_head_position(current_head, move)
 
@@ -51,34 +66,3 @@ class Simulation:
 
             new_data = GameData(bodies = new_body, foods = data.foods)
             self.route_search_12(data=new_data, route=new_route)
-
-    def route_search_24(self, data: GameData, route: typing.List[str] = []):
-        if data.board[data.head()[0]][data.head()[1]] == Type.food.value:
-            new_body = data.bodies.copy()
-            new_body.append(new_body[-1])  # 食べたら体が伸びる
-            new_data = GameData(bodies = new_body, foods = data.foods)
-            if len(new_data.no_foods()) > 0:
-                self.result.append(route)
-            return
-        if len(route) >= self.max_depth:
-            return
-        
-        predicate = {"up": (1, GameData.board_height), "down": (1, 1), "left": (0, 1), "right": (0, GameData.board_width)}
-        if data.head()[predicate[GameData.rotate_direction[1]][0]] == predicate[GameData.rotate_direction[1]][1]:
-            GameData.rotate_direction = [GameData.rotate_direction[1], data.reverse(GameData.rotate_direction[0])]
-            print(f"Rotate direction changed to: {GameData.rotate_direction}")
-        
-        candidate = [GameData.rotate_direction[0], GameData.rotate_direction[1], data.reverse(GameData.rotate_direction[1])]
-        for move in candidate:
-            if move in data.safes_around():
-                current_head = data.head()
-                next_head = self.next_head_position(current_head, move)
-
-                new_body = data.bodies.copy()
-                new_body.pop(-1)
-                new_body.insert(0, next_head)
-                
-                new_route = route + [move]
-
-                new_data = GameData(bodies = new_body, foods = data.foods)
-                self.route_search_24(data=new_data, route=new_route)
