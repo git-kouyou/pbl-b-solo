@@ -73,8 +73,10 @@ def move_internal(data: GameData) -> typing.Dict:
         starting_length = 9
     elif data.length() <= 17:
         starting_length = 12
-    else:
+    elif data.length() <= 28:
         starting_length = 20
+    else:
+        starting_length = 30
 
     # 体力が少ないときのエサ探索: 優先度3
     if data.health <= starting_length:
