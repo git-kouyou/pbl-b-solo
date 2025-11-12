@@ -17,12 +17,11 @@ class Type(Enum):
 class GameData:
     board_height: int
     board_width: int
-    wall: typing.List
     previous_foods = []
+    target_pos: typing.Tuple[int, int] = tuple()
     status: Status = Status.loop
     disignated_route: typing.List[str] = []
     isDisignated: bool = False
-    rotate_direction = []
     initialized = False
 
     def __init__(self, game_state: typing.Dict = {}, bodies = [], foods = []):
@@ -37,13 +36,6 @@ class GameData:
             #幅と高さの設定
             GameData.board_width = game_state["board"]["width"]
             GameData.board_height = game_state["board"]["height"]
-
-            #壁の座標(tuple)一覧
-            wall1 = [(x, 0) for x in range(GameData.board_width + 1)]
-            wall2 = [(x, GameData.board_height + 1) for x in range(GameData.board_width + 1)]
-            wall3 = [(0, y) for y in range(1, GameData.board_height + 1)]
-            wall4 = [(GameData.board_width + 1, y) for y in range(1, GameData.board_height + 1)]
-            GameData.wall = wall1 + wall2 + wall3 + wall4
 
             #初期化済み
             GameData.initialized = True
@@ -64,14 +56,18 @@ class GameData:
         self.foods = [(food["x"] + 1, food["y"] + 1) for food in game_state["board"]["food"]] if foods == [] else foods
         #盤面のデータ
         self.board = self.generate_board()
+        #残り体力
+        self.health = game_state["you"]["health"] if "you" in game_state else 100
     
     def generate_board(self):
         result = [[Type.safe.value] * (GameData.board_width + 2) for _ in range(GameData.board_height + 2)]
         #体
-        for i in range(self.length()):
-            result[self.bodies[i][0]][self.bodies[i][1]] = self.length() - i + Type.body.value - 2  # 頭に近いほど値が大きい
-            if self.length() >= 3 and not self.ate_food() and i == self.length() - 1:
-                result[self.bodies[i][0]][self.bodies[i][1]] = Type.safe.value  # 尻尾は移動するので安全地帯になる
+        if self.length() < 3 or self.ate_food():
+            for i in range(self.length()):
+                result[self.bodies[i][0]][self.bodies[i][1]] = self.length() - i + Type.body.value - 1  # 頭に近いほど値が大きい
+        else:
+            for i in range(self.length() - 1):
+                result[self.bodies[i][0]][self.bodies[i][1]] = self.length() - i + Type.body.value - 2  # 頭に近いほど値が大きい
         #食べ物
         for food in self.foods:
             result[food[0]][food[1]] = Type.food.value
@@ -89,7 +85,10 @@ class GameData:
         for x in range(GameData.board_height + 2):
             row = ""
             for y in range(GameData.board_width + 2):
-                row += f"{self.board[y][GameData.board_height + 1 - x]} "
+                if self.board[y][GameData.board_height + 1 - x] != Type.wall.value:
+                    row += f"{self.board[y][GameData.board_height + 1 - x]}".zfill(2) + " "
+                else:
+                    row += "## "
             print(row)
 
     def ate_food(self):
@@ -101,14 +100,23 @@ class GameData:
     def neck(self):
         return self.bodies[1] if len(self.bodies) > 1  else self.head()
     
-    def heading(self):
-        return self.get_heading(self.neck(), self.head())
-    
     def tail(self):
         return self.bodies[-1]
     
     def length(self):
         return len(self.bodies)
+    
+    def empty_around(self):
+        result = []
+        if self.board[self.head()[0] + 1][self.head()[1]] == Type.safe.value:
+            result.append("right")
+        if self.board[self.head()[0]][self.head()[1] + 1] == Type.safe.value:
+            result.append("up")
+        if self.board[self.head()[0] - 1][self.head()[1]] == Type.safe.value:
+            result.append("left")
+        if self.board[self.head()[0]][self.head()[1] - 1] == Type.safe.value:
+            result.append("down")
+        return result
     
     def unsafes_around(self):
         result = []
@@ -170,41 +178,46 @@ class GameData:
     def no_foods(self):
         return list(set(self.safes_around()) - set(self.foods_around()))
     
-    def get_heading(self, from_pos, to_pos) -> str:
-        direction = "None"
-        if (from_pos[0] - 1, from_pos[1]) == to_pos:
-            direction = "left"
-        elif (from_pos[0] + 1, from_pos[1]) == to_pos:
-            direction = "right"
-        elif (from_pos[0], from_pos[1] + 1) == to_pos:
-            direction = "up"
-        elif (from_pos[0], from_pos[1] - 1) == to_pos:
-            direction = "down"
-        return direction
+    # def get_heading(self, from_pos, to_pos) -> str:
+    #     direction = "None"
+    #     if (from_pos[0] - 1, from_pos[1]) == to_pos:
+    #         direction = "left"
+    #     elif (from_pos[0] + 1, from_pos[1]) == to_pos:
+    #         direction = "right"
+    #     elif (from_pos[0], from_pos[1] + 1) == to_pos:
+    #         direction = "up"
+    #     elif (from_pos[0], from_pos[1] - 1) == to_pos:
+    #         direction = "down"
+    #     return direction
     
-    def haeding(self):
-        return self.get_heading(self.neck(), self.head())
-    
-    def get_direction(self, from_pos, to_pos) -> str:
-        direction = ""
-        if (from_pos[0] - 1, from_pos[1]) == to_pos:
-            direction = "left"
-        elif (from_pos[0] + 1, from_pos[1]) == to_pos:
-            direction = "right"
-        elif (from_pos[0], from_pos[1] + 1) == to_pos:
-            direction = "up"
-        elif (from_pos[0], from_pos[1] - 1) == to_pos:
-            direction = "down"
-        return direction
-    
-    def reverse(self, direction: str) -> str:
-        if direction == "up":
-            return "down"
-        elif direction == "down":
-            return "up"
-        elif direction == "left":
-            return "right"
-        elif direction == "right":
+    def heading(self):
+        if self.head()[0] < self.neck()[0]:
             return "left"
+        elif self.head()[0] > self.neck()[0]:
+            return "right"
+        elif self.head()[1] < self.neck()[1]:
+            return "down"
+        elif self.head()[1] > self.neck()[1]:
+            return "up"
+        
+    def neck_direction(self):
+        if self.neck()[0] < self.head()[0]:
+            return "left"
+        elif self.neck()[0] > self.head()[0]:
+            return "right"
+        elif self.neck()[1] < self.head()[1]:
+            return "down"
         else:
-            return "None"
+            return "up"
+        
+    # def get_direction(self, from_pos, to_pos) -> str:
+    #     direction = ""
+    #     if (from_pos[0] - 1, from_pos[1]) == to_pos:
+    #         direction = "left"
+    #     elif (from_pos[0] + 1, from_pos[1]) == to_pos:
+    #         direction = "right"
+    #     elif (from_pos[0], from_pos[1] + 1) == to_pos:
+    #         direction = "up"
+    #     elif (from_pos[0], from_pos[1] - 1) == to_pos:
+    #         direction = "down"
+    #     return direction

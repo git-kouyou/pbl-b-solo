@@ -19,15 +19,7 @@ from simulation import Simulation
 # and controls your Battlesnake's appearance
 # TIP: If you open your Battlesnake URL in a browser you should see this data
 
-board_width = 0
-board_height = 0
-wall = []
-body_length = 0
-target_food = ()
-previous_foods = []
-status = Status.loop
 DEBUG = True
-
 def info() -> typing.Dict:
     print("INFO")
 
@@ -53,27 +45,34 @@ def end(game_state: typing.Dict):
 # move is called on every turn and returns your next move
 # Valid moves are "up", "down", "left", or "right"
 # See https://docs.battlesnake.com/api/example-move for available data
-def move(game_state: typing.Dict) -> typing.Dict:
-    data: GameData = GameData(game_state)
+def move_internal(data: GameData) -> typing.Dict:
     next_move = "None"
 
-    #体が極小の時
+    #体が極小の時: 優先度1
     if data.length() <= 2:
         return {"move": random.choice(data.no_foods())}
-    
-    if len(GameData.disignated_route) == 0 and GameData.isDisignated:
-        GameData.isDisignated = False
-        GameData.status = Status.loop
 
+    # 指定ルートがある場合(エサを探すとき): 優先度2
     if GameData.isDisignated:
-        next_move = GameData.disignated_route.pop(0)
-        if DEBUG:
-            print(f"Disignated Move: {next_move}")
-        return {"move": next_move}
+        if len(GameData.disignated_route) == 0:
+            GameData.isDisignated = False
+            GameData.status = Status.loop
+        else:
+            next_move = GameData.disignated_route.pop(0)
+            if DEBUG:
+                print(f"Disignated Move: {next_move}")
+            return {"move": next_move}
 
-    if game_state["you"]["health"] <= 10:
-        simulator = Simulation(game_data = data, max_depth = game_state["you"]["health"])
-        simulator.route_search_12(data = data)
+    starting_length = 0
+    if data.length() <= 6:
+        starting_length = 9
+    else:
+        starting_length = 12
+
+    # 体力が少ないときのエサ探索: 優先度3
+    if data.health <= starting_length:
+        simulator = Simulation(game_data = data, max_depth = data.health)
+        simulator.route_search_new(data = data)
         if(len(simulator.result) > 0):
             GameData.disignated_route = max(simulator.result, key = len)
             GameData.isDisignated = True
@@ -83,11 +82,14 @@ def move(game_state: typing.Dict) -> typing.Dict:
                 print(f"Disignated Move: {next_move}")
             return {"move": next_move}
         
-    # 進行可能方向がないor一つしかない場合の処理
+    # 進行可能方向がないor一つしかない場合の処理: 優先度4
     if len(data.safes_around()) == 0:
-        if DEBUG:
-            print("No safe move detected! move down!")
-        next_move = "down"
+        if len(data.empty_around()) > 0:
+            next_move = random.choice(data.empty_around())
+        else:
+            if DEBUG:
+                print("No safe move detected! move down!")
+            next_move = "down"
         return {"move": next_move}
     elif len(data.safes_around()) == 1:
         if DEBUG:
@@ -95,6 +97,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
         next_move = data.safes_around()[0]
         return {"move": next_move}
 
+    # ループを探す動作: 優先度5
     if GameData.status == Status.loop:
         next = []
         distance = {"up": data.tail()[1] - data.head()[1],
@@ -106,23 +109,32 @@ def move(game_state: typing.Dict) -> typing.Dict:
             if distance[move] > 0:
                 next.append(move)
         if len(next) == 2:
-            next = [max(next, key = lambda x: distance[x])]
+            next_move = max(next, key = lambda x: distance[x])
+        if len(next) == 1:
+            next_move = next[0]
         elif len(next) == 0:
-            next = data.no_foods()
-        if len(next) > 0:
-            next_move = random.choice(next)
-        else:
-            next_move = random.choice(data.safes_around())
+            #TODO: 尻尾に到達可能な法を探す
+            if data.heading() in data.no_foods():
+                next_move = data.heading()
+            elif len(data.no_foods()) > 0:
+                next_move = random.choice(data.no_foods())
 
     if next_move == "None":
         print("random move")
         next_move = random.choice(data.safes_around())
+    return {"move": next_move}
+
+def move(game_state: typing.Dict) -> typing.Dict:
+    data = GameData(game_state)
+    data.print_board()
+    next_move =  move_internal(data)
+    GameData.previous_foods = data.foods
     if DEBUG:
-        print(f"no foods: {data.unsafes_around()}")
+        print(f"no foods: {data.no_foods()}")
         print(f"MOVE {game_state['turn']}: {next_move}")
         print(f"頭: {data.head()} 現在のステータス: {GameData.status}")
-    GameData.previous_foods = data.foods
-    return {"move": next_move}
+    return next_move
+   
 
 # Start server when `python main.py` is run
 if __name__ == "__main__":

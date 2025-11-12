@@ -8,8 +8,8 @@ class Simulation:
     def __init__(self, game_data: GameData, max_depth: int, rotation: typing.List[str] = []) -> None:
         self.game_data = game_data
         self.max_depth = max_depth
-        self.rotation = rotation
         self.result = []
+        self.dumped_route_34: typing.Dict[typing.Tuple[typing.Tuple[int, int], str], typing.Set[int]] = {}
 
     def next_head_position(self, head: typing.Tuple[int, int], move: str) -> typing.Tuple[int, int]:
         next_head = (0, 0)
@@ -43,16 +43,13 @@ class Simulation:
                     "right": data.head()[0] - data.tail()[0],
                     "left": data.tail()[0] - data.head()[0]}
         
-        if data.length() <= 8:
+        minimum = 100
+        for move in data.safes_around():
+            if distance[move] > 0 and move in data.safes_around() and distance[move] < minimum:
+                minimum = distance[move]
+                next = [move]
+        if len(next) == 0:
             next = data.safes_around()
-        else:
-            for move in data.safes_around():
-                if distance[move] > 0 and move in data.safes_around():
-                    next.append(move)
-            if len(next) == 2:
-                next = [min(next, key = lambda x: distance[x])]
-            elif len(next) == 0:
-                next = data.safes_around()
             
         for move in next:
             current_head = data.head()
@@ -66,3 +63,74 @@ class Simulation:
 
             new_data = GameData(bodies = new_body, foods = data.foods)
             self.route_search_12(data=new_data, route=new_route)
+
+    def route_search_new(self, data: GameData, route: typing.List[str] = []):
+        if data.head() in self.game_data.foods:
+            data.bodies.append((0 , 0))  # 食べたら体が伸びる
+            new_data = GameData(bodies = data.bodies, foods = data.foods)
+            if len(new_data.safes_around()) > 0 and len(new_data.no_foods()) > 0:
+                self.result.append(route)
+            return
+        
+        if len(route) >= self.max_depth:
+            return
+        if len(data.safes_around()) == 0:
+            return
+
+        next = []
+        if data.length() <= 4:
+            next = data.safes_around()
+            current_head = data.head()
+            next_heads = [self.next_head_position(current_head, move) for move in next]
+            for nh in next_heads:
+                if (nh, data.neck_direction()) in self.dumped_route_34.keys():
+                    if data.length() in self.dumped_route_34[(nh, data.neck_direction())]:
+                        return
+                    else:
+                        self.dumped_route_34[(nh, data.neck_direction())].add(data.length())
+                else:
+                    self.dumped_route_34[(nh, data.neck_direction())] = set([data.length()])
+        elif data.length() <= 6:
+            next = data.safes_around()
+        elif len(route) < self.max_depth / 2:
+            distance = {"up": data.head()[1] - self.game_data.tail()[1],
+                    "down": self.game_data.tail()[1] - data.head()[1],
+                    "right": data.head()[0] - self.game_data.tail()[0],
+                    "left": self.game_data.tail()[0] - data.head()[0]}
+
+            for move in data.safes_around():
+                if distance[move] > 0:
+                    next.append(move)
+            
+            if len(next) == 0:
+                if data.heading() in data.safes_around():
+                    next.append(data.heading())
+                elif len(data.safes_around()) > 0:
+                    next = data.safes_around()
+        else:
+            distance = {"up": self.game_data.tail()[1] - data.head()[1],
+                        "down": data.head()[1] - self.game_data.tail()[1],
+                        "right": self.game_data.tail()[0] - data.head()[0],
+                        "left": data.head()[0] - self.game_data.tail()[0]}
+
+            for move in data.safes_around():
+                if distance[move] > 0:
+                    next.append(move)
+            if len(next) == 0:
+                if data.heading() in data.safes_around():
+                    next.append(data.heading())
+                elif len(data.safes_around()) > 0:
+                    next = data.safes_around()
+            
+        for move in next:
+            current_head = data.head()
+            next_head = self.next_head_position(current_head, move)
+
+            new_body = data.bodies.copy()
+            new_body.pop(-1)
+            new_body.insert(0, next_head)
+            
+            new_route = route + [move]
+
+            new_data = GameData(bodies = new_body, foods = data.foods)
+            self.route_search_new(data=new_data, route=new_route)
