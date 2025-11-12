@@ -12,6 +12,8 @@
 
 import random
 import typing
+import math
+from collections import deque
 from reachable import Reachable
 from gamedata import Status, GameData
 from simulation import Simulation
@@ -55,20 +57,24 @@ def move_internal(data: GameData) -> typing.Dict:
 
     # 指定ルートがある場合(エサを探すとき): 優先度2
     if GameData.isDisignated:
-        if len(GameData.disignated_route) == 0:
-            GameData.isDisignated = False
-            GameData.status = Status.loop
-        else:
+        if GameData.disignated_route == 0:
             next_move = GameData.disignated_route.popleft()
             if DEBUG:
                 print(f"Disignated Move: {next_move}")
             return {"move": next_move}
+        else:
+            GameData.isDisignated = False
+            GameData.status = Status.loop
 
     starting_length = 0
-    if data.length() <= 4:
+    if 3 <= data.length() <= 4:
+        starting_length = 12
+    elif data.length() <= 9:
+        starting_length = 9
+    elif data.length() <= 17:
         starting_length = 12
     else:
-        starting_length = 9
+        starting_length = 20
 
     # 体力が少ないときのエサ探索: 優先度3
     if data.health <= starting_length:
@@ -76,10 +82,15 @@ def move_internal(data: GameData) -> typing.Dict:
         simulator.route_search_new(data = data)
         if simulator.result_tire1:
             GameData.disignated_route = max(simulator.result_tire1, key = len)
+            print(f"Tire 1 route: {GameData.disignated_route}")
         elif simulator.result_tire2:
             GameData.disignated_route = max(simulator.result_tire2, key = len)
+            print(f"Tire 2 route: {GameData.disignated_route}")
+        elif simulator.result_tire3:
+            GameData.disignated_route = min(simulator.result_tire3, key = len)
+            print(f"Tire 3 route: {GameData.disignated_route}")
 
-        if GameData.disignated_route:
+        if GameData.isDisignated == False and GameData.disignated_route:
             GameData.isDisignated = True
             GameData.status = Status.eat_food
             next_move = GameData.disignated_route.popleft()
@@ -115,9 +126,9 @@ def move_internal(data: GameData) -> typing.Dict:
                 next.append(move)
         if len(next) == 2:
             next_move = max(next, key = lambda x: distance[x])
-        if len(next) == 1:
+        elif len(next) == 1:
             next_move = next[0]
-        elif len(next) == 0:
+        else:
             #TODO: 尻尾に到達可能な方向を探す
             for move in data.no_foods():
                 next_head = data.next_head_position(data.head(), move)
@@ -133,9 +144,12 @@ def move_internal(data: GameData) -> typing.Dict:
                 elif data.no_foods():
                     next_move = random.choice(data.no_foods())
                     return {"move": next_move}
-    if next_move == "None":
-        next_move = random.choice(data.no_foods())
-        return {"move": next_move}
+                elif data.safes_around():
+                    next_move = random.choice(data.safes_around())
+                    return {"move": next_move}
+    
+    if next_move == "None" and data.safes_around():
+        next_move = random.choice(data.safes_around())
     return {"move": next_move}
 
 # 初期化やデバッグ表示など
@@ -144,6 +158,8 @@ def move(game_state: typing.Dict) -> typing.Dict:
     #data.print_board()
     next_move =  move_internal(data)
     GameData.previous_foods = data.foods
+    
+    reachable_food_avoidance = []
     reachable = []
     if data.length() >= 3:
         for move in data.safes_around():
@@ -152,9 +168,17 @@ def move(game_state: typing.Dict) -> typing.Dict:
             new_body.pop()
             new_body.appendleft(next_head)
             if Reachable(bodies = new_body, foods = data.foods, width = GameData.board_width, height = GameData.board_height).is_reachable_tail_food_avoidance(next_head):
+                reachable_food_avoidance.append(move)
+    if data.length() >= 3:
+        for move in data.safes_around():
+            next_head = data.next_head_position(data.head(), move)
+            new_body = data.bodies.copy()
+            new_body.pop()
+            new_body.appendleft(next_head)
+            if Reachable(bodies = new_body, foods = data.foods, width = GameData.board_width, height = GameData.board_height).is_reachable_tail(next_head):
                 reachable.append(move)
     if DEBUG:
-        print(f"reachable: {reachable}")
+        print(f"reachable: {reachable} reachable_food_avoidance: {reachable_food_avoidance}")
         print(f"no foods: {data.no_foods()}")
         print(f"safes around: {data.safes_around()}")
         print(f"MOVE {game_state['turn']}: {next_move}")

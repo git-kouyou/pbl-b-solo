@@ -119,13 +119,13 @@ class GameData:
     # 周りの進行可能方向のリスト
     def empty_around(self):
         result = []
-        if self.board[self.head()[0] + 1][self.head()[1]] == Type.safe.value:
+        if self.board[self.head()[0] + 1][self.head()[1]] <= Type.food.value:
             result.append("right")
-        if self.board[self.head()[0]][self.head()[1] + 1] == Type.safe.value:
+        if self.board[self.head()[0]][self.head()[1] + 1] <= Type.food.value:
             result.append("up")
-        if self.board[self.head()[0] - 1][self.head()[1]] == Type.safe.value:
+        if self.board[self.head()[0] - 1][self.head()[1]] <= Type.food.value:
             result.append("left")
-        if self.board[self.head()[0]][self.head()[1] - 1] == Type.safe.value:
+        if self.board[self.head()[0]][self.head()[1] - 1] <= Type.food.value:
             result.append("down")
         return result
     

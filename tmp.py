@@ -87,3 +87,72 @@ class Reachable:
                         visited[ny][nx] = True
                         queue.append((nx, ny, nd))
         return False
+    
+import typing
+import copy
+from gamedata import Type
+from gamedata import Type
+from collections import deque
+
+class Reachable:
+    def __init__(self, foods, bodies, width, height) -> None:
+        self.width = width
+        self.height = height
+        self.board = self.generate_board(foods, bodies)
+
+    def generate_board(self, foods, bodies):
+        # 盤面を初期化
+        result = [[0] * (self.width) for _ in range(self.height)]
+        # 体
+        for i in range(len(bodies)):
+            if bodies[i][0] - 1 == 0 and bodies[i][1] - 1 == 0:
+                continue
+            result[bodies[i][0] - 1][bodies[i][1] - 1] = len(bodies) - i
+        # 食べ物
+        for food in foods:
+            result[food[0] - 1][food[1] - 1] = -1
+        return result
+
+    def is_reachable_tail(self, start: typing.Tuple[int, int]) -> int:
+        start = (start[0] - 1, start[1] - 1)
+        visited = [[False] * self.width for _ in range(self.height)]
+        visited[start[1]][start[0]] = True
+
+        queue = deque([start])
+
+        while queue:
+            x, y = queue.popleft()
+            
+            depth = 1
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < self.width and 0 <= ny < self.height:
+                    if not visited[ny][nx] and 0 <= self.board[ny][nx] <= depth:
+                        if self.board[ny][nx] == depth:
+                            return True
+                        visited[ny][nx] = True
+                        queue.append((nx, ny))
+                depth += 1
+        return False
+    
+    def is_reachable_tail_food_avoidance(self, start: typing.Tuple[int, int]) -> bool:
+        start = (start[0] - 1, start[1] - 1)
+        visited = [[False] * self.width for _ in range(self.height)]
+        visited[start[1]][start[0]] = True
+
+        queue = deque([start])
+
+        while queue:
+            x, y = queue.popleft()
+            
+            depth = 1
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < self.width and 0 <= ny < self.height:
+                    if not visited[ny][nx] and 0 <= self.board[ny][nx] <= depth:
+                        if self.board[ny][nx] == depth:
+                            return True
+                        visited[ny][nx] = True
+                        queue.append((nx, ny))
+                depth += 1
+        return False

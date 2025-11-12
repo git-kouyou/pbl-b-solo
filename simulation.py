@@ -13,6 +13,7 @@ class Simulation:
         #経路探索結果
         self.result_tire1 = []
         self.result_tire2 = []
+        self.result_tire3 = []
         #長さが3〜4のときの探索済み経路保存用
         self.dumped_route_34: typing.Dict[typing.Tuple[typing.Tuple[int, int], str], typing.Set[int]] = {}
 
@@ -24,7 +25,14 @@ class Simulation:
                 self.result_tire1.append(route)
             elif Reachable(bodies = data.bodies, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable_tail(data.head()):
                 self.result_tire2.append(route)    
+            else:
+                new_body = data.bodies.copy()
+                new_body.append((0, 0))
+                new_data = GameData(bodies = new_body, foods = data.foods)
+                if new_data.safes_around():
+                    self.result_tire3.append(route)
             return
+
         #最大深度に達したら終了
         if len(route) >= self.max_depth:
             return
@@ -46,14 +54,7 @@ class Simulation:
                     self.dumped_route_34[(next_head, data.neck_direction())] = set([data.length()])
                 next.append(move)
         else:
-            candidates = data.safes_around()
-            for move in candidates:
-                next_head = data.next_head_position(data.head(), move)
-                new_body = data.bodies.copy()
-                new_body.pop()
-                new_body.appendleft(next_head)
-                if Reachable(bodies = new_body, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable_tail(next_head):
-                    next.append(move)
+            next = deque(data.safes_around())
         # elif len(route) < self.max_depth / 2:
         #     distance = {"up": data.head()[1] - self.game_data.tail()[1],
         #             "down": self.game_data.tail()[1] - data.head()[1],
