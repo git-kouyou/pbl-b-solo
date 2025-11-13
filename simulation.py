@@ -22,17 +22,15 @@ class Simulation:
     #新版
     def route_search_new(self, data: GameData, route: deque = deque()):
         #餌を食べたら経路を保存して終了
-        if data.head() in self.game_data.foods:
-            new_body = data.bodies.copy()
-            new_body.append((0, 0))
-            if Reachable(bodies = new_body, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable_tail_food_avoidance(data.head(), data.tail()):
+        if data.head() in data.foods:
+            tail = data.tail()
+            data.bodies.append((0, 0))
+            new_foods = data.foods.copy()
+            new_foods.remove(data.head())
+            if Reachable(bodies = data.bodies, foods = new_foods, width = GameData.board_width, height = GameData.board_height).is_reachable_tail_food_avoidance(data.head(), tail):
                 self.result_tire1.append(route)
-            elif Reachable(bodies = new_body, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable_tail(data.head(), data.tail()):
+            elif Reachable(bodies = data.bodies, foods = new_foods, width = GameData.board_width, height = GameData.board_height).is_reachable_tail(data.head(), tail):
                 self.result_tire2.append(route)    
-            else:
-                new_data = GameData(bodies = new_body, foods = data.foods)
-                if new_data.safes_around():
-                    self.result_tire3.append(route)
             return
 
         #最大深度に達したら終了
@@ -69,5 +67,6 @@ class Simulation:
             new_route = route.copy()
             new_route.append(move)
 
-            new_data = GameData(bodies = new_body, foods = data.foods)
-            self.route_search_new(data = new_data, route = new_route)
+            if Reachable(bodies = new_body, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable_tail(next_head, data.tail()):
+                new_data = GameData(bodies = new_body, foods = data.foods)
+                self.route_search_new(data = new_data, route = new_route)
