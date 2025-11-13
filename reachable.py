@@ -1,4 +1,5 @@
 from collections import deque
+from gamedata import Type
 
 X = 0
 Y = 1
@@ -27,7 +28,7 @@ class Reachable:
             result[body[Y] - 1][body[X] - 1] = len(bodies) - i
         # 食べ物
         for food in foods:
-            result[food[Y] - 1][food[X] - 1] = -1
+            result[food[Y] - 1][food[X] - 1] = Type.food.value
         return result
 
     def is_reachable_tail(self, start: tuple[int, int], goal: tuple[int, int]) -> int:
