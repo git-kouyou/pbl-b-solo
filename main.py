@@ -112,40 +112,41 @@ def move_internal(data: GameData) -> typing.Dict:
 
     # ループを探す動作: 優先度5
     if GameData.status == Status.loop:
-        next = []
+        tire1 = []
+        tire2 = []
+        tire3 = []
+        tire4 = []
         distance = {"up": data.tail()[Y] - data.head()[Y],
                     "down": data.head()[Y] - data.tail()[Y],
                     "right": data.tail()[X] - data.head()[X],
                     "left": data.head()[X] - data.tail()[X]}
         
-        for move in data.no_foods():
-            if distance[move] > 0:
-                next_head = data.next_head_position(data.head(), move)
-                new_body = data.bodies.copy()
-                new_body.pop()
-                new_body.appendleft(next_head)
-                if Reachable(bodies = new_body, foods = data.foods, width = GameData.board_width, height = GameData.board_height).is_reachable_tail_food_avoidance(next_head, data.tail()):
-                    next.append(move)
-        if next:
-            next_move = max(next, key = lambda m: distance[m])
+        for move in data.safes_around():
+            next_head = data.next_head_position(data.head(), move)
+            new_body = data.bodies.copy()
+            new_body.pop()
+            new_body.appendleft(next_head)
+            if Reachable(bodies = new_body, foods = data.foods, width = GameData.board_width, height = GameData.board_height).is_reachable_tail_food_avoidance(next_head, data.tail()):
+                if distance[move] > 0:
+                    tire1.append(move)
+                else:
+                    tire2.append(move)
+            elif Reachable(bodies = new_body, foods = data.foods, width = GameData.board_width, height = GameData.board_height).is_reachable_tail(next_head, data.tail()):
+                tire3.append(move)
+                if distance[move] > 0:
+                    tire3.append(move)
+                else:
+                    tire4.append(move)
+        if tire1:
+            next_move = max(tire1, key = lambda m: distance[m])
+        elif tire2:
+            next_move = random.choice(tire2)
+        elif tire3:
+            next_move = max(tire3, key = lambda m: distance[m]) 
+        elif tire4:
+            next_move = random.choice(tire4)
         else:
-            #TODO: 尻尾に到達可能な方向を探す
-            reachable = []
-            reachable_food_avoidance = []
-            for move in data.no_foods():
-                next_head = data.next_head_position(data.head(), move)
-                new_body = data.bodies.copy()
-                new_body.pop()
-                new_body.appendleft(next_head)
-                if Reachable(bodies = new_body, foods = data.foods, width = GameData.board_width, height = GameData.board_height).is_reachable_tail_food_avoidance(next_head, data.tail()):
-                    reachable_food_avoidance.append(move)
-                elif Reachable(bodies = new_body, foods = data.foods, width = GameData.board_width, height = GameData.board_height).is_reachable_tail(next_head, data.tail()):
-                    reachable.append(move)
-            if reachable_food_avoidance:
-                next_move = random.choice(reachable_food_avoidance)
-            elif reachable:
-                next_move = random.choice(reachable)
-            elif data.heading() in data.no_foods():
+            if data.heading() in data.no_foods():
                 next_move = data.heading()
             elif data.no_foods():
                 next_move = random.choice(data.no_foods())

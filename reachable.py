@@ -57,7 +57,7 @@ class Reachable:
         goal = (goal[X] - 1, goal[Y] - 1)
         if start == goal:
             return True
-        if self.board[goal[Y]][goal[X]] == -1:
+        if self.board[start[Y]][start[X]] == -1 or self.board[goal[Y]][goal[X]] == -1:
             return False
         visited = [[False] * self.height for _ in range(self.width)]
         visited[start[Y]][start[X]] = True

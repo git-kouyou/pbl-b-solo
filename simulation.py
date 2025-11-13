@@ -69,5 +69,6 @@ class Simulation:
             new_route = route.copy()
             new_route.append(move)
 
-            new_data = GameData(bodies = new_body, foods = data.foods)
-            self.route_search_new(data = new_data, route = new_route)
+            if Reachable(bodies = new_body, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable_tail(next_head, data.tail()):
+                new_data = GameData(bodies = new_body, foods = data.foods)
+                self.route_search_new(data = new_data, route = new_route)
