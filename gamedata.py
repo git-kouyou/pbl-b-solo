@@ -2,16 +2,18 @@ import typing
 from collections import deque
 from enum import Enum
 
+X = 0
+Y = 1
+
 class Status(Enum):
-    find_food = 0
-    loop = 1
-    eat_food = 2
+    loop = 0
+    eat_food = 1
 
 # 盤面上の各マスの種類
 class Type(Enum):
     safe = 0
-    food = 1
-    body = 2
+    food = -1
+    body = 1
     wall = 100
 
 # データクラス
@@ -68,13 +70,13 @@ class GameData:
         # 体
         if self.length() < 3 or self.ate_food():
             for i in range(self.length()):
-                result[self.bodies[i][0]][self.bodies[i][1]] = self.length() - i + Type.body.value - 1  # 頭に近いほど値が大きい
+                result[self.bodies[i][Y]][self.bodies[i][X]] = self.length() - i + Type.body.value - 1  # 頭に近いほど値が大きい
         else:
             for i in range(self.length() - 1):
-                result[self.bodies[i][0]][self.bodies[i][1]] = self.length() - i + Type.body.value - 2  # 頭に近いほど値が大きい
+                result[self.bodies[i][Y]][self.bodies[i][X]] = self.length() - i + Type.body.value - 2  # 頭に近いほど値が大きい
         # 食べ物
         for food in self.foods:
-            result[food[0]][food[1]] = Type.food.value
+            result[food[Y]][food[X]] = Type.food.value
         # 壁(縦)
         for i in range(GameData.board_width + 2):
             result[i][0] = Type.wall.value
@@ -87,11 +89,11 @@ class GameData:
 
     # デバッグ用盤面表示
     def print_board(self):
-        for x in range(GameData.board_height + 2):
+        for y in range(GameData.board_height + 2):
             row = ""
-            for y in range(GameData.board_width + 2):
-                if self.board[y][GameData.board_height + 1 - x] != Type.wall.value:
-                    row += f"{self.board[y][GameData.board_height + 1 - x]}".zfill(2) + " "
+            for x in range(GameData.board_width + 2):
+                if self.board[y][GameData.board_width + 1 - x] != Type.wall.value:
+                    row += f"{self.board[y][GameData.board_width + 1 - x]}".zfill(2) + " "
                 else:
                     row += "## "
             print(row)
@@ -119,73 +121,73 @@ class GameData:
     # 周りの進行可能方向のリスト
     def empty_around(self):
         result = []
-        if self.board[self.head()[0] + 1][self.head()[1]] <= Type.food.value:
+        if self.board[self.head()[Y]][self.head()[X] + 1] <= Type.food.value:
             result.append("right")
-        if self.board[self.head()[0]][self.head()[1] + 1] <= Type.food.value:
+        if self.board[self.head()[Y] + 1][self.head()[X]] <= Type.food.value:
             result.append("up")
-        if self.board[self.head()[0] - 1][self.head()[1]] <= Type.food.value:
+        if self.board[self.head()[Y]][self.head()[X] - 1] <= Type.food.value:
             result.append("left")
-        if self.board[self.head()[0]][self.head()[1] - 1] <= Type.food.value:
+        if self.board[self.head()[Y] - 1][self.head()[X]] <= Type.food.value:
             result.append("down")
         return result
     
     # 進行不可能方向(潜在的な詰み含む)のリスト
     def unsafes_around(self):
         result = []
-        if self.board[self.head()[0] + 1][self.head()[1]] >= Type.body.value:
+        if self.board[self.head()[Y]][self.head()[X] + 1] >= Type.body.value + 1:
             result.append("right")
-        if self.board[self.head()[0]][self.head()[1] + 1] >= Type.body.value:
+        if self.board[self.head()[Y] + 1][self.head()[X]] >= Type.body.value + 1:
             result.append("up")
-        if self.board[self.head()[0] - 1][self.head()[1]] >= Type.body.value:
+        if self.board[self.head()[Y]][self.head()[X] - 1] >= Type.body.value + 1:
             result.append("left")
-        if self.board[self.head()[0]][self.head()[1] - 1] >= Type.body.value:
+        if self.board[self.head()[Y] - 1][self.head()[X]] >= Type.body.value + 1:
             result.append("down")
-        if "right" not in result and self.board[self.head()[0] + 1][self.head()[1] + 1] >= Type.body.value + 1 and self.board[self.head()[0] + 2][self.head()[1]] >= Type.body.value + 1 and self.board[self.head()[0] + 1][self.head()[1] - 1] >= Type.body.value + 1:
-            result.append("right")
-        if "up" not in result and self.board[self.head()[0] + 1][self.head()[1] + 1] >= Type.body.value + 1 and self.board[self.head()[0]][self.head()[1] + 2] >= Type.body.value + 1 and self.board[self.head()[0] - 1][self.head()[1] + 1] >= Type.body.value + 1:
-            result.append("up")
-        if "left" not in result and self.board[self.head()[0] - 1][self.head()[1] + 1] >= Type.body.value + 1 and self.board[self.head()[0] - 2][self.head()[1]] >= Type.body.value + 1 and self.board[self.head()[0] - 1][self.head()[1] - 1] >= Type.body.value + 1:
-            result.append("left")
-        if "down" not in result and self.board[self.head()[0] + 1][self.head()[1] - 1] >= Type.body.value + 1 and self.board[self.head()[0]][self.head()[1] - 2] >= Type.body.value + 1 and self.board[self.head()[0] - 1][self.head()[1] - 1] >= Type.body.value + 1:
-            result.append("down")
+        # if "right" not in result and self.board[self.head()[Y] + 1][self.head()[X] + 1] >= Type.body.value + 1 and self.board[self.head()[Y]][self.head()[X] + 2] >= Type.body.value + 1 and self.board[self.head()[Y] - 1][self.head()[X] + 1] >= Type.body.value + 1:
+        #     result.append("right")
+        # if "up" not in result and self.board[self.head()[Y] + 1][self.head()[X] + 1] >= Type.body.value + 1 and self.board[self.head()[Y] + 2][self.head()[X]] >= Type.body.value + 1 and self.board[self.head()[Y] + 1][self.head()[X] - 1] >= Type.body.value + 1:
+        #     result.append("up")
+        # if "left" not in result and self.board[self.head()[Y] + 1][self.head()[X] - 1] >= Type.body.value + 1 and self.board[self.head()[Y]][self.head()[X] - 2] >= Type.body.value + 1 and self.board[self.head()[Y] - 1][self.head()[X] - 1] >= Type.body.value + 1:
+        #     result.append("left")
+        # if "down" not in result and self.board[self.head()[Y] + 1][self.head()[X] - 1] >= Type.body.value + 1 and self.board[self.head()[Y]][self.head()[X] - 2] >= Type.body.value + 1 and self.board[self.head()[Y] - 1][self.head()[X] - 1] >= Type.body.value + 1:
+        #     result.append("down")
         return result
     
     # 周りの餌のある方向のリスト
     def foods_around(self):
         result = []
-        if self.board[self.head()[0] + 1][self.head()[1]] == Type.food.value:
+        if self.board[self.head()[Y]][self.head()[X] + 1] == Type.food.value:
             result.append("right")
-        if self.board[self.head()[0]][self.head()[1] + 1] == Type.food.value:
+        if self.board[self.head()[Y] + 1][self.head()[X]] == Type.food.value:
             result.append("up")
-        if self.board[self.head()[0] - 1][self.head()[1]] == Type.food.value:
+        if self.board[self.head()[Y]][self.head()[X] - 1] == Type.food.value:
             result.append("left")
-        if self.board[self.head()[0]][self.head()[1] - 1] == Type.food.value:
+        if self.board[self.head()[Y] - 1][self.head()[X]] == Type.food.value:
             result.append("down")
         return result
     
     # 周りの安全な方向のリスト
     def safes_around(self):
         result = [] 
-        if self.board[self.head()[0] + 1][self.head()[1]] <= Type.food.value:
+        if self.board[self.head()[Y]][self.head()[X] + 1] <= Type.safe.value:
             result.append("right")
-        if self.board[self.head()[0]][self.head()[1] + 1] <= Type.food.value:
+        if self.board[self.head()[Y] + 1][self.head()[X]] <= Type.safe.value:
             result.append("up")
-        if self.board[self.head()[0] - 1][self.head()[1]] <= Type.food.value:
+        if self.board[self.head()[Y]][self.head()[X] - 1] <= Type.safe.value:
             result.append("left")   
-        if self.board[self.head()[0]][self.head()[1] - 1] <= Type.food.value:
+        if self.board[self.head()[Y] - 1][self.head()[X]] <= Type.safe.value:
             result.append("down")
-        if "right" in result:
-            if self.board[self.head()[0] + 1][self.head()[1] + 1] >= Type.body.value + 1 and self.board[self.head()[0] + 2][self.head()[1]] >= Type.body.value + 1 and self.board[self.head()[0] + 1][self.head()[1] - 1] >= Type.body.value + 1:
-                result.remove("right")
-        if "up" in result:
-            if self.board[self.head()[0] + 1][self.head()[1] + 1] >= Type.body.value + 1 and self.board[self.head()[0]][self.head()[1] + 2] >= Type.body.value + 1 and self.board[self.head()[0] - 1][self.head()[1] + 1] >= Type.body.value + 1:
-                result.remove("up")
-        if "left" in result:
-            if self.board[self.head()[0] - 1][self.head()[1] + 1] >= Type.body.value + 1 and self.board[self.head()[0] - 2][self.head()[1]] >= Type.body.value + 1 and self.board[self.head()[0] - 1][self.head()[1] - 1] >= Type.body.value + 1:
-                result.remove("left")
-        if "down" in result:
-            if self.board[self.head()[0] + 1][self.head()[1] - 1] >= Type.body.value + 1 and self.board[self.head()[0]][self.head()[1] - 2] >= Type.body.value + 1 and self.board[self.head()[0] - 1][self.head()[1] - 1] >= Type.body.value + 1:
-                result.remove("down")
+        # if "right" in result:
+        #     if self.board[self.head()[Y] + 1][self.head()[X] + 1] >= Type.body.value + 1 and self.board[self.head()[Y]][self.head()[X] + 2] >= Type.body.value + 1 and self.board[self.head()[Y] - 1][self.head()[X] + 1] >= Type.body.value + 1:
+        #         result.remove("right")
+        # if "up" in result:
+        #     if self.board[self.head()[Y] + 1][self.head()[X] + 1] >= Type.body.value + 1 and self.board[self.head()[Y] + 2][self.head()[X]] >= Type.body.value + 1 and self.board[self.head()[Y] + 1][self.head()[X] - 1] >= Type.body.value + 1:
+        #         result.remove("up")
+        # if "left" in result:
+        #     if self.board[self.head()[Y] + 1][self.head()[X] - 1] >= Type.body.value + 1 and self.board[self.head()[Y]][self.head()[X] - 2] >= Type.body.value + 1 and self.board[self.head()[Y] - 1][self.head()[X] - 1] >= Type.body.value + 1:
+        #         result.remove("left")
+        # if "down" in result:
+        #     if self.board[self.head()[Y] + 1][self.head()[X] - 1] >= Type.body.value + 1 and self.board[self.head()[Y]][self.head()[X] - 2] >= Type.body.value + 1 and self.board[self.head()[Y] - 1][self.head()[X] - 1] >= Type.body.value + 1:
+        #         result.remove("down")
         return result
     
     # 餌のない安全な方向のリスト
@@ -194,11 +196,11 @@ class GameData:
     
     # 現在の進行方向
     def heading(self):
-        if self.head()[0] < self.neck()[0]:
+        if self.head()[X] < self.neck()[X]:
             return "left"
-        elif self.head()[0] > self.neck()[0]:
+        elif self.head()[X] > self.neck()[X]:
             return "right"
-        elif self.head()[1] < self.neck()[1]:
+        elif self.head()[Y] < self.neck()[Y]:
             return "down"
         else:
             return "up"
@@ -220,12 +222,11 @@ class GameData:
         
     #進む方向によって次の頭の位置を返す
     def next_head_position(self, head: typing.Tuple[int, int], move: str) -> typing.Tuple[int, int]:
-        next_head = (0, 0)
         if move == "right":
-            return (head[0] + 1, head[1])
+            return (head[X] + 1, head[Y])
         elif move == "up":
-            return (head[0], head[1] + 1)
+            return (head[X], head[Y] + 1)
         elif move == "left":
-            return (head[0] - 1, head[1])
+            return (head[X] - 1, head[Y])
         else:
-            return (head[0], head[1] - 1)
+            return (head[X], head[Y] - 1)
