@@ -71,9 +71,9 @@ def move_internal(data: GameData) -> typing.Dict:
         starting_length = 12
     elif data.length() <= 9:
         starting_length = 9
-    elif data.length() <= 17:
+    elif data.length() <= 20:
         starting_length = 12
-    elif data.length() <= 28:
+    elif data.length() <= 27:
         starting_length = 20
     else:
         starting_length = 30
@@ -131,7 +131,6 @@ def move_internal(data: GameData) -> typing.Dict:
         elif len(next) == 1:
             next_move = next[0]
         else:
-            #TODO: 尻尾に到達可能な方向を探す
             for move in data.no_foods():
                 next_head = data.next_head_position(data.head(), move)
                 new_body = data.bodies.copy()
