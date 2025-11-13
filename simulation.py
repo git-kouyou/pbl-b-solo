@@ -1,8 +1,10 @@
 import typing
 from collections import deque
 from gamedata import GameData
-from gamedata import Type
 from reachable import Reachable
+
+Y = 1
+X = 0
 
 class Simulation:
     def __init__(self, game_data: GameData, max_depth: int) -> None:
@@ -20,14 +22,14 @@ class Simulation:
     #新版
     def route_search_new(self, data: GameData, route: deque = deque()):
         #餌を食べたら経路を保存して終了
-        if data.head() in self.game_data.foods:    
-            if Reachable(bodies = data.bodies, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable_tail_food_avoidance(data.head()):
+        if data.head() in self.game_data.foods:
+            new_body = data.bodies.copy()
+            new_body.append((0, 0))
+            if Reachable(bodies = new_body, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable_tail_food_avoidance(data.head(), data.tail()):
                 self.result_tire1.append(route)
-            elif Reachable(bodies = data.bodies, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable_tail(data.head()):
+            elif Reachable(bodies = new_body, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable_tail(data.head(), data.tail()):
                 self.result_tire2.append(route)    
             else:
-                new_body = data.bodies.copy()
-                new_body.append((0, 0))
                 new_data = GameData(bodies = new_body, foods = data.foods)
                 if new_data.safes_around():
                     self.result_tire3.append(route)
@@ -37,7 +39,7 @@ class Simulation:
         if len(route) >= self.max_depth:
             return
         #進行可能方向がない場合終了
-        if len(data.safes_around()) == 0:
+        if not data.safes_around():
             return
 
         next = deque()
@@ -55,35 +57,6 @@ class Simulation:
                 next.append(move)
         else:
             next = deque(data.safes_around())
-        # elif len(route) < self.max_depth / 2:
-        #     distance = {"up": data.head()[1] - self.game_data.tail()[1],
-        #             "down": self.game_data.tail()[1] - data.head()[1],
-        #             "right": data.head()[0] - self.game_data.tail()[0],
-        #             "left": self.game_data.tail()[0] - data.head()[0]}
-
-        #     for move in data.safes_around():
-        #         if distance[move] > 0:
-        #             next.append(move)
-            
-        #     if len(next) == 0:
-        #         if data.heading() in data.safes_around():
-        #             next.append(data.heading())
-        #         elif data.safes_around():
-        #             next = data.safes_around()
-        # else:
-        #     distance = {"up": self.game_data.tail()[1] - data.head()[1],
-        #                 "down": data.head()[1] - self.game_data.tail()[1],
-        #                 "right": self.game_data.tail()[0] - data.head()[0],
-        #                 "left": data.head()[0] - self.game_data.tail()[0]}
-
-        #     for move in data.safes_around():
-        #         if distance[move] > 0:
-        #             next.append(move)
-        #     if len(next) == 0:
-        #         if data.heading() in data.safes_around():
-        #             next.append(data.heading())
-        #         elif len(data.safes_around()) > 0:
-        #             next = data.safes_around()
             
         for move in next:
             current_head = data.head()
