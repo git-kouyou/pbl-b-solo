@@ -23,15 +23,14 @@ class Simulation:
     def route_search_new(self, data: GameData, route: deque = deque()):
         #餌を食べたら経路を保存して終了
         if data.head() in self.game_data.foods:
-            new_body = data.bodies.copy()
-            new_body.append((0, 0))
+            data.bodies.append((0, 0))
             data.foods.remove(data.head())
-            if Reachable(bodies = new_body, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable_tail_food_avoidance(data.head(), data.tail()):
+            if Reachable(bodies = data.bodies, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable_tail_food_avoidance(data.head(), data.tail()):
                 self.result_tire1.append(route)
-            elif Reachable(bodies = new_body, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable_tail(data.head(), data.tail()):
+            elif Reachable(bodies = data.bodies, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable_tail(data.head(), data.tail()):
                 self.result_tire2.append(route)    
             else:
-                new_data = GameData(bodies = new_body, foods = data.foods)
+                new_data = GameData(bodies = data.bodies, foods = data.foods)
                 if new_data.safes_around():
                     self.result_tire3.append(route)
             return
