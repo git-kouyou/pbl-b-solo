@@ -21,7 +21,6 @@ class GameData:
     board_height: int
     board_width: int
     previous_foods:typing.Set[typing.Tuple[int, int]] = set()
-    target_pos: typing.Tuple[int, int] = tuple()
     status: Status = Status.loop
     disignated_route: deque = deque()
     isDisignated: bool = False
@@ -33,14 +32,17 @@ class GameData:
             exit(1)
 
         # 初生成時にクラス変数を初期化
-        if GameData.initialized == False:
+        if not GameData.initialized:
             if game_state == {}:
                 print("information for initialization is insufficient!")
                 exit(1)
             #幅と高さの設定
             GameData.board_width = game_state["board"]["width"]
             GameData.board_height = game_state["board"]["height"]
-
+            GameData.previous_foods = set()
+            GameData.status = Status.loop
+            GameData.disignated_route = deque()
+            GameData.isDisignated = False
             #初期化済み
             GameData.initialized = True
             print("GameData initialized")
