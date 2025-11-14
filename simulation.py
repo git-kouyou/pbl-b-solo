@@ -20,16 +20,16 @@ class Simulation:
         self.dumped_route_34: typing.Dict[typing.Tuple[typing.Tuple[int, int], str], typing.Set[int]] = {}
 
     #新版
-    def route_search_new(self, data: GameData, route: deque = deque()):
+    def route_search(self, data: GameData, route: deque = deque()):
         #餌を食べたら経路を保存して終了
         if data.head() in data.foods:
             tail = data.tail()
             data.bodies.append((0, 0))
             new_foods = data.foods.copy()
             new_foods.remove(data.head())
-            if Reachable(bodies = data.bodies, foods = new_foods, width = GameData.board_width, height = GameData.board_height).is_reachable_tail_food_avoidance(data.head(), tail):
+            if Reachable(bodies = data.bodies, foods = new_foods, width = GameData.board_width, height = GameData.board_height).is_reachable_food_avoidance(data.head(), tail):
                 self.result_tire1.append(route)
-            elif Reachable(bodies = data.bodies, foods = new_foods, width = GameData.board_width, height = GameData.board_height).is_reachable_tail(data.head(), tail):
+            elif Reachable(bodies = data.bodies, foods = new_foods, width = GameData.board_width, height = GameData.board_height).is_reachable(data.head(), tail):
                 self.result_tire2.append(route)    
             return
 
@@ -46,12 +46,12 @@ class Simulation:
             current_head = data.head()
             for move in data.safes_around():
                 next_head = data.next_head_position(current_head, move)
-                if (next_head, data.neck_direction()) in self.dumped_route_34.keys():
-                    if data.length() in self.dumped_route_34[(next_head, data.neck_direction())]:
+                if (next_head, data.heading()) in self.dumped_route_34.keys():
+                    if data.length() in self.dumped_route_34[(next_head, data.heading())]:
                         continue
-                    self.dumped_route_34[(next_head, data.neck_direction())].add(data.length())
+                    self.dumped_route_34[(next_head, data.heading())].add(data.length())
                 else:
-                    self.dumped_route_34[(next_head, data.neck_direction())] = set([data.length()])
+                    self.dumped_route_34[(next_head, data.heading())] = set([data.length()])
                 next.append(move)
         else:
             next = deque(data.safes_around())
@@ -67,6 +67,6 @@ class Simulation:
             new_route = route.copy()
             new_route.append(move)
 
-            if Reachable(bodies = new_body, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable_tail(next_head, data.tail()):
+            if Reachable(bodies = new_body, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable(next_head, data.tail()):
                 new_data = GameData(bodies = new_body, foods = data.foods)
-                self.route_search_new(data = new_data, route = new_route)
+                self.route_search(data = new_data, route = new_route)

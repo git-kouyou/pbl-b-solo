@@ -20,10 +20,10 @@ class Type(Enum):
 class GameData:
     board_height: int
     board_width: int
-    previous_foods:typing.Set[typing.Tuple[int, int]] = set()
+    previous_foods:typing.Set[typing.Tuple[int, int]]
     status: Status = Status.loop
-    disignated_route: deque = deque()
-    isDisignated: bool = False
+    disignated_route: deque
+    isDisignated: bool
     initialized = False
 
     def __init__(self, game_state: typing.Dict = {}, bodies = set(), foods = []):
@@ -61,37 +61,36 @@ class GameData:
         # 食べ物の座標(tuple)一覧
         self.foods = set([(food["x"] + 1, food["y"] + 1) for food in game_state["board"]["food"]]) if not foods else foods
         # 盤面のデータ
-        self.board = self.generate_board()
+        self.generate_board()
         # 残り体力
         self.health = game_state["you"]["health"] if "you" in game_state else 100
     
     # 盤面データの生成
     def generate_board(self):
         # 盤面を初期化
-        result = [[Type.safe.value] * (GameData.board_width + 2) for _ in range(GameData.board_height + 2)]
+        self.board = [[Type.safe.value] * (GameData.board_width + 2) for _ in range(GameData.board_height + 2)]
+        # 壁(縦)
+        for i in range(GameData.board_width + 2):
+            self.board[i][0] = Type.wall.value
+            self.board[i][GameData.board_height + 1] = Type.wall.value
+        # 壁(横)
+        for j in range(GameData.board_height + 2):
+            self.board[0][j] = Type.wall.value
+            self.board[GameData.board_width + 1][j] = Type.wall.value
         # 体
         if self.length() < 3 or self.ate_food():
             for i in range(self.length()):
-                result[self.bodies[i][Y]][self.bodies[i][X]] = self.length() - i + Type.body.value - 1  # 頭に近いほど値が大きい
+                self.board[self.bodies[i][Y]][self.bodies[i][X]] = self.length() - i + Type.body.value - 1  # 頭に近いほど値が大きい
         else:
             for i in range(self.length() - 1):
-                result[self.bodies[i][Y]][self.bodies[i][X]] = self.length() - i + Type.body.value - 2  # 頭に近いほど値が大きい
+                self.board[self.bodies[i][Y]][self.bodies[i][X]] = self.length() - i + Type.body.value - 2  # 頭に近いほど値が大きい
         # 食べ物
         for food in self.foods:
-            result[food[Y]][food[X]] = Type.food.value
-        # 壁(縦)
-        for i in range(GameData.board_width + 2):
-            result[i][0] = Type.wall.value
-            result[i][GameData.board_height + 1] = Type.wall.value
-        # 壁(横)
-        for j in range(GameData.board_height + 2):
-            result[0][j] = Type.wall.value
-            result[GameData.board_width + 1][j] = Type.wall.value
-        return result
+            self.board[food[Y]][food[X]] = Type.food.value
 
     # デバッグ用盤面表示
     def print_board(self):
-        for y in range(GameData.board_height + 2):
+        for y in reversed(range(GameData.board_height + 2)):
             row = ""
             for x in range(GameData.board_width + 2):
                 if self.board[y][GameData.board_width + 1 - x] != Type.wall.value:
@@ -206,10 +205,6 @@ class GameData:
             return "down"
         else:
             return "up"
-    
-    # 首の方向
-    def neck_direction(self):
-        return self.reverse_direction(self.heading())
     
     # 向きの反転
     def reverse_direction(self, direction: str) -> str:
