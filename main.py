@@ -35,6 +35,7 @@ def end(game_state: typing.Dict):
 
 def next_move(data: GameData) -> str:
     next_move = "None"
+    safes_around = data.safes_around()
 
     #体が極小の時: 優先度1
     if data.length() <= 2:
@@ -55,20 +56,20 @@ def next_move(data: GameData) -> str:
             GameData.isDisignated = False
             GameData.status = Status.loop
 
-    # TODO: ここをちゃんと決める?
+    # 体力に応じたエサ探索開始長さの設定
     starting_length = 0
     if 3 <= data.length() <= 4:
         starting_length = 12
-    elif data.length() <= 13:
-        starting_length = 9
-    elif data.length() <= 18:
-        starting_length = 12
-    elif data.length() <= 24:
+    elif data.length() <= 12:
+        starting_length = 10
+    elif data.length() <= 15:
+        starting_length = 13
+    elif data.length() <= 20:
         starting_length = 16
     elif data.length() <= 25:
         starting_length = 18
-    elif data.length() < 30:
-        starting_length = 24
+    elif data.length() <= 30:
+        starting_length = 22
     else:
         starting_length = 30
 
@@ -82,6 +83,9 @@ def next_move(data: GameData) -> str:
         elif simulator.result_tire2:
             GameData.disignated_route = max(simulator.result_tire2, key = len)
             print(f"Tire 2 route: {GameData.disignated_route}")
+        elif simulator.result_tire3:
+            GameData.disignated_route = max(simulator.result_tire3, key = len)
+            print(f"Tire 3 route: {GameData.disignated_route}")
 
         if GameData.disignated_route:
             GameData.isDisignated = True
@@ -93,7 +97,7 @@ def next_move(data: GameData) -> str:
         print("No route to food found!")
         
     # 進行可能方向がないor一つしかない場合の処理: 優先度4
-    if not data.safes_around():
+    if not safes_around:
         if data.empty_around():
             next_move = random.choice(data.empty_around())
         else:
@@ -101,10 +105,10 @@ def next_move(data: GameData) -> str:
                 print("No safe move detected! move down!")
             next_move = "down"
         return next_move
-    elif len(data.safes_around()) == 1:
+    elif len(safes_around) == 1:
         if DEBUG:
             print("Only one safe move detected!")
-        next_move = data.safes_around()[0]
+        next_move = safes_around[0]
         return next_move
 
     # ループを探す動作: 優先度5
@@ -118,7 +122,7 @@ def next_move(data: GameData) -> str:
                     "right": data.tail()[X] - data.head()[X],
                     "left": data.head()[X] - data.tail()[X]}
         
-        for move in data.safes_around():
+        for move in safes_around:
             next_head = data.next_head_position(data.head(), move)
             new_body = data.bodies.copy()
             new_body.pop()
@@ -148,8 +152,8 @@ def next_move(data: GameData) -> str:
             elif data.no_foods():
                 next_move = random.choice(data.no_foods())
     
-    if next_move == "None" and data.safes_around():
-        next_move = random.choice(data.safes_around())
+    if next_move == "None" and safes_around:
+        next_move = random.choice(safes_around)
     return next_move
 
 # 初期化やデバッグ表示など

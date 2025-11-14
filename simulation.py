@@ -1,4 +1,5 @@
 import typing
+import random   
 from collections import deque
 from gamedata import GameData
 from reachable import Reachable
@@ -21,30 +22,40 @@ class Simulation:
 
     #新版
     def route_search(self, data: GameData, route: deque = deque()):
+        current_safes_around = data.safes_around()
+        current_head = data.head()
+        length = data.length()
+
+        #進行可能方向がない場合終了
+        if not current_safes_around:
+            return
+
         #餌を食べたら経路を保存して終了
         if data.head() in data.foods:
             tail = data.tail()
-            data.bodies.append((0, 0))
+            data.bodies.append((-1, -1))
             new_foods = data.foods.copy()
             new_foods.remove(data.head())
-            if Reachable(bodies = data.bodies, foods = new_foods, width = GameData.board_width, height = GameData.board_height).is_reachable_food_avoidance(data.head(), tail):
-                self.result_tire1.append(route)
-            elif Reachable(bodies = data.bodies, foods = new_foods, width = GameData.board_width, height = GameData.board_height).is_reachable(data.head(), tail):
-                self.result_tire2.append(route)    
+            if Reachable(bodies = data.bodies, foods = new_foods, width = GameData.board_width, height = GameData.board_height).is_reachable_food_avoidance(current_head, tail):
+                copied_route = route.copy()
+                self.result_tire1.append(copied_route)
+            elif Reachable(bodies = data.bodies, foods = new_foods, width = GameData.board_width, height = GameData.board_height).is_reachable(current_head, tail):
+                copied_route = route.copy()
+                self.result_tire2.append(copied_route)    
+            else:
+                copied_route = route.copy()
+                self.result_tire3.append(copied_route)
+            data.bodies.pop()
             return
 
         #最大深度に達したら終了
         if len(route) >= self.max_depth:
             return
-        #進行可能方向がない場合終了
-        if not data.safes_around():
-            return
 
-        next = deque()
+        next = []
         #長さが3〜4のときは全探索するが，頭の位置と首の向きが同じで体の長さも同じ場合は探索済みとして終了
         if data.length() <= 4:
-            current_head = data.head()
-            for move in data.safes_around():
+            for move in current_safes_around:
                 next_head = data.next_head_position(current_head, move)
                 if (next_head, data.heading()) in self.dumped_route_34.keys():
                     if data.length() in self.dumped_route_34[(next_head, data.heading())]:
@@ -54,19 +65,25 @@ class Simulation:
                     self.dumped_route_34[(next_head, data.heading())] = set([data.length()])
                 next.append(move)
         else:
-            next = deque(data.safes_around())
-            
+            next = current_safes_around        
+        if 8 < length < 24 and len(next) > 2:
+            next = random.sample(next, 2)
+
         for move in next:
             current_head = data.head()
             next_head = data.next_head_position(current_head, move)
 
-            new_body = data.bodies.copy()
-            new_body.pop()
-            new_body.appendleft(next_head)
+            # new_body = data.bodies.copy()
+            removed_tail = data.bodies.pop()
+            data.bodies.appendleft(next_head)
             
-            new_route = route.copy()
-            new_route.append(move)
+            route.append(move)
 
-            if Reachable(bodies = new_body, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable(next_head, data.tail()):
-                new_data = GameData(bodies = new_body, foods = data.foods)
-                self.route_search(data = new_data, route = new_route)
+            if Reachable(bodies = data.bodies, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable(next_head, data.tail()):
+                data.generate_board()
+                self.route_search(data = data, route = route)
+
+            route.pop()
+            data.bodies.popleft()
+            data.bodies.append(removed_tail)
+            data.generate_board()

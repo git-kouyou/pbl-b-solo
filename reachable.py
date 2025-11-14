@@ -16,20 +16,18 @@ class Reachable:
     def generate_board(self, foods, bodies):
         # 盤面を初期化
         result = [[0] * (self.width) for _ in range(self.height)]
+        length = len(bodies)
         # 体
         for i, body in enumerate(bodies):
-            if body[X] - 1 < 0 and body[Y] - 1 < 0:
+            if body[X] < 0 and body[Y] < 0:
                 continue
-            result[body[Y] - 1][body[X] - 1] = len(bodies) - i
+            result[body[Y]][body[X]] = length - i
         # 食べ物
         for food in foods:
-            result[food[Y] - 1][food[X] - 1] = Type.food.value
+            result[food[Y]][food[X]] = Type.food.value
         return result
 
     def is_reachable(self, start: tuple[int, int], goal: tuple[int, int]) -> int:
-        # gamedataの座標系からBSF用の座標系に変換
-        start = (start[X] - 1, start[Y] - 1)
-        goal = (goal[X] - 1, goal[Y] - 1)
         if start == goal:
             return True
         visited = [[False] * self.width for _ in range(self.height)]
@@ -50,13 +48,11 @@ class Reachable:
         return False
     
     def is_reachable_food_avoidance(self, start: tuple[int, int], goal: tuple[int, int]) -> bool:
-        start = (start[X] - 1, start[Y] - 1)
-        goal = (goal[X] - 1, goal[Y] - 1)
         if start == goal:
             return True
         if self.board[start[Y]][start[X]] == Type.food.value or self.board[goal[Y]][goal[X]] == Type.food.value:
             return False
-        visited = [[False] * self.height for _ in range(self.width)]
+        visited = [[False] * self.width for _ in range(self.height)]
         visited[start[Y]][start[X]] = True
 
         queue = deque([(start[X], start[Y], 0)])
@@ -85,14 +81,14 @@ class Reachable:
 # デバッグ用
 if __name__ == "__main__":
     DEBUG = True
-    foods = {(6, 1), (1, 5), (5, 2)}
-    bodies = deque([(3, 1),(2, 1), (2, 2), (2, 3), (3, 3), (3, 4), (2, 4), (2, 5), (3, 5), (4, 5), (4, 4), (4, 3), (5, 3), (6, 3), (6, 4), (5, 4), (5, 5)])
+    foods = []
+    bodies = deque()
 
     BSF = Reachable(foods = foods, bodies = bodies, width = 6, height = 6)
     BSF.print_board()
 
-    start = (3, 1)
-    goal = (6, 5)
+    start = (0, 0)
+    goal = (0, 0)
 
     print(f"reachable food avoid:{BSF.is_reachable_food_avoidance(start, goal)}")
     print(f"reachable:{BSF.is_reachable(start, goal)}")

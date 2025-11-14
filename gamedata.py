@@ -52,14 +52,14 @@ class GameData:
         if not bodies:
             seen = set()
             for body in game_state["you"]["body"]:
-                pos = (body["x"] + 1, body["y"] + 1)
+                pos = (body["x"], body["y"])
                 if pos not in seen:
                     seen.add(pos)
                     self.bodies.append(pos)
         else:
             self.bodies = bodies
         # 食べ物の座標(tuple)一覧
-        self.foods = set([(food["x"] + 1, food["y"] + 1) for food in game_state["board"]["food"]]) if not foods else foods
+        self.foods = set([(food["x"], food["y"]) for food in game_state["board"]["food"]]) if not foods else foods
         # 盤面のデータ
         self.generate_board()
         # 残り体力
@@ -68,15 +68,7 @@ class GameData:
     # 盤面データの生成
     def generate_board(self):
         # 盤面を初期化
-        self.board = [[Type.safe.value] * (GameData.board_width + 2) for _ in range(GameData.board_height + 2)]
-        # 壁(縦)
-        for i in range(GameData.board_width + 2):
-            self.board[i][0] = Type.wall.value
-            self.board[i][GameData.board_height + 1] = Type.wall.value
-        # 壁(横)
-        for j in range(GameData.board_height + 2):
-            self.board[0][j] = Type.wall.value
-            self.board[GameData.board_width + 1][j] = Type.wall.value
+        self.board = [[Type.safe.value] * (GameData.board_width) for _ in range(GameData.board_height)]
         # 体
         if self.length() < 3 or self.ate_food():
             for i in range(self.length()):
@@ -90,11 +82,11 @@ class GameData:
 
     # デバッグ用盤面表示
     def print_board(self):
-        for y in reversed(range(GameData.board_height + 2)):
+        for y in reversed(range(GameData.board_height)):
             row = ""
-            for x in range(GameData.board_width + 2):
-                if self.board[y][GameData.board_width + 1 - x] != Type.wall.value:
-                    row += f"{self.board[y][GameData.board_width + 1 - x]}".zfill(2) + " "
+            for x in range(GameData.board_width):
+                if self.board[y][x] != Type.wall.value:
+                    row += f"{self.board[y][x]}".zfill(2) + " "
                 else:
                     row += "## "
             print(row)
@@ -122,73 +114,57 @@ class GameData:
     # 周りの進行可能方向のリスト
     def empty_around(self):
         result = []
-        if self.board[self.head()[Y]][self.head()[X] + 1] <= Type.food.value:
+        head = self.head()
+        if 0 <= head[X] + 1 < GameData.board_width and self.board[head[Y]][head[X] + 1] <= Type.food.value:
             result.append("right")
-        if self.board[self.head()[Y] + 1][self.head()[X]] <= Type.food.value:
+        if 0 <= head[Y] + 1 < GameData.board_height and self.board[head[Y] + 1][head[X]] <= Type.food.value:
             result.append("up")
-        if self.board[self.head()[Y]][self.head()[X] - 1] <= Type.food.value:
+        if 0 <= head[X] - 1 < GameData.board_width and self.board[head[Y]][head[X] - 1] <= Type.food.value:
             result.append("left")
-        if self.board[self.head()[Y] - 1][self.head()[X]] <= Type.food.value:
+        if 0 <= head[Y] - 1 < GameData.board_height and self.board[head[Y] - 1][head[X]] <= Type.food.value:
             result.append("down")
         return result
     
     # 進行不可能方向(潜在的な詰み含む)のリスト
     def unsafes_around(self):
         result = []
-        if self.board[self.head()[Y]][self.head()[X] + 1] >= Type.body.value + 1:
+        head = self.head()
+        if 0 <= head[X] + 1 < GameData.board_width and self.board[head[Y]][head[X] + 1] >= Type.body.value + 1:
             result.append("right")
-        if self.board[self.head()[Y] + 1][self.head()[X]] >= Type.body.value + 1:
+        if 0 <= head[Y] + 1 < GameData.board_height and self.board[head[Y] + 1][head[X]] >= Type.body.value + 1:
             result.append("up")
-        if self.board[self.head()[Y]][self.head()[X] - 1] >= Type.body.value + 1:
+        if 0 <= head[X] - 1 < GameData.board_width and self.board[head[Y]][head[X] - 1] >= Type.body.value + 1:
             result.append("left")
-        if self.board[self.head()[Y] - 1][self.head()[X]] >= Type.body.value + 1:
+        if 0 <= head[Y] - 1 < GameData.board_height and self.board[head[Y] - 1][head[X]] >= Type.body.value + 1:
             result.append("down")
-        # if "right" not in result and self.board[self.head()[Y] + 1][self.head()[X] + 1] >= Type.body.value + 1 and self.board[self.head()[Y]][self.head()[X] + 2] >= Type.body.value + 1 and self.board[self.head()[Y] - 1][self.head()[X] + 1] >= Type.body.value + 1:
-        #     result.append("right")
-        # if "up" not in result and self.board[self.head()[Y] + 1][self.head()[X] + 1] >= Type.body.value + 1 and self.board[self.head()[Y] + 2][self.head()[X]] >= Type.body.value + 1 and self.board[self.head()[Y] + 1][self.head()[X] - 1] >= Type.body.value + 1:
-        #     result.append("up")
-        # if "left" not in result and self.board[self.head()[Y] + 1][self.head()[X] - 1] >= Type.body.value + 1 and self.board[self.head()[Y]][self.head()[X] - 2] >= Type.body.value + 1 and self.board[self.head()[Y] - 1][self.head()[X] - 1] >= Type.body.value + 1:
-        #     result.append("left")
-        # if "down" not in result and self.board[self.head()[Y] + 1][self.head()[X] - 1] >= Type.body.value + 1 and self.board[self.head()[Y]][self.head()[X] - 2] >= Type.body.value + 1 and self.board[self.head()[Y] - 1][self.head()[X] - 1] >= Type.body.value + 1:
-        #     result.append("down")
         return result
     
     # 周りの餌のある方向のリスト
     def foods_around(self):
         result = []
-        if self.board[self.head()[Y]][self.head()[X] + 1] == Type.food.value:
+        head = self.head()
+        if 0 <= head[X] + 1 < GameData.board_width and self.board[head[Y]][head[X] + 1] == Type.food.value:
             result.append("right")
-        if self.board[self.head()[Y] + 1][self.head()[X]] == Type.food.value:
+        if 0 <= head[Y] + 1 < GameData.board_height and self.board[head[Y] + 1][head[X]] == Type.food.value:
             result.append("up")
-        if self.board[self.head()[Y]][self.head()[X] - 1] == Type.food.value:
+        if 0 <= head[X] - 1 < GameData.board_width and self.board[head[Y]][head[X] - 1] == Type.food.value:
             result.append("left")
-        if self.board[self.head()[Y] - 1][self.head()[X]] == Type.food.value:
+        if 0 <= head[Y] - 1 < GameData.board_height and self.board[head[Y] - 1][head[X]] == Type.food.value:
             result.append("down")
         return result
     
     # 周りの安全な方向のリスト
     def safes_around(self):
         result = [] 
-        if self.board[self.head()[Y]][self.head()[X] + 1] <= Type.safe.value:
+        head = self.head()
+        if 0 <= head[X] + 1 < GameData.board_width and self.board[head[Y]][head[X] + 1] <= Type.safe.value:
             result.append("right")
-        if self.board[self.head()[Y] + 1][self.head()[X]] <= Type.safe.value:
+        if 0 <= head[Y] + 1 < GameData.board_height and self.board[head[Y] + 1][head[X]] <= Type.safe.value:
             result.append("up")
-        if self.board[self.head()[Y]][self.head()[X] - 1] <= Type.safe.value:
+        if 0 <= head[X] - 1 < GameData.board_width and self.board[head[Y]][head[X] - 1] <= Type.safe.value:
             result.append("left")   
-        if self.board[self.head()[Y] - 1][self.head()[X]] <= Type.safe.value:
+        if 0 <= head[Y] - 1 < GameData.board_height and self.board[head[Y] - 1][head[X]] <= Type.safe.value:
             result.append("down")
-        # if "right" in result:
-        #     if self.board[self.head()[Y] + 1][self.head()[X] + 1] >= Type.body.value + 1 and self.board[self.head()[Y]][self.head()[X] + 2] >= Type.body.value + 1 and self.board[self.head()[Y] - 1][self.head()[X] + 1] >= Type.body.value + 1:
-        #         result.remove("right")
-        # if "up" in result:
-        #     if self.board[self.head()[Y] + 1][self.head()[X] + 1] >= Type.body.value + 1 and self.board[self.head()[Y] + 2][self.head()[X]] >= Type.body.value + 1 and self.board[self.head()[Y] + 1][self.head()[X] - 1] >= Type.body.value + 1:
-        #         result.remove("up")
-        # if "left" in result:
-        #     if self.board[self.head()[Y] + 1][self.head()[X] - 1] >= Type.body.value + 1 and self.board[self.head()[Y]][self.head()[X] - 2] >= Type.body.value + 1 and self.board[self.head()[Y] - 1][self.head()[X] - 1] >= Type.body.value + 1:
-        #         result.remove("left")
-        # if "down" in result:
-        #     if self.board[self.head()[Y] + 1][self.head()[X] - 1] >= Type.body.value + 1 and self.board[self.head()[Y]][self.head()[X] - 2] >= Type.body.value + 1 and self.board[self.head()[Y] - 1][self.head()[X] - 1] >= Type.body.value + 1:
-        #         result.remove("down")
         return result
     
     # 餌のない安全な方向のリスト
@@ -197,11 +173,13 @@ class GameData:
     
     # 現在の進行方向
     def heading(self):
-        if self.head()[X] < self.neck()[X]:
+        head = self.head()
+        neck = self.neck()
+        if head[X] < neck[X]:
             return "left"
-        elif self.head()[X] > self.neck()[X]:
+        elif head[X] > neck[X]:
             return "right"
-        elif self.head()[Y] < self.neck()[Y]:
+        elif head[Y] < neck[Y]:
             return "down"
         else:
             return "up"
