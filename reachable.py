@@ -1,8 +1,7 @@
 from collections import deque
 from gamedata import Type
-
-X = 0
-Y = 1
+from gamedata import X as X
+from gamedata import Y as Y
 
 # 盤面表現: board[y][x]
 
@@ -19,7 +18,7 @@ class Reachable:
         length = len(bodies)
         # 体
         for i, body in enumerate(bodies):
-            if body[X] < 0 and body[Y] < 0:
+            if body[X] < 0 or body[Y] < 0:
                 continue
             result[body[Y]][body[X]] = length - i
         # 食べ物
@@ -27,7 +26,7 @@ class Reachable:
             result[food[Y]][food[X]] = Type.food.value
         return result
 
-    def is_reachable(self, start: tuple[int, int], goal: tuple[int, int]) -> int:
+    def is_reachable(self, start: tuple[int, int], goal: tuple[int, int]) -> bool:
         if start == goal:
             return True
         visited = [[False] * self.width for _ in range(self.height)]
@@ -40,7 +39,7 @@ class Reachable:
                 nx, ny = x + dx, y + dy
                 nd = depth + 1
                 if 0 <= nx < self.width and 0 <= ny < self.height and not visited[ny][nx]:
-                    if self.board[ny][nx] <= depth:
+                    if self.board[ny][nx] <= nd:
                         if (nx, ny) == goal:
                             return True
                         visited[ny][nx] = True
@@ -61,8 +60,8 @@ class Reachable:
             nd = depth + 1
             for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
                 nx, ny = x + dx, y + dy
-                if 0 <= nx < self.height and 0 <= ny < self.width and not visited[ny][nx]:
-                    if 0 <= self.board[ny][nx] <= depth:
+                if 0 <= nx < self.width and 0 <= ny < self.height and not visited[ny][nx]:
+                    if 0 <= self.board[ny][nx] <= nd:
                         if (nx, ny) == goal:
                             return True
                         visited[ny][nx] = True

@@ -10,7 +10,7 @@ from simulation import Simulation
 X = 0
 Y = 1
 
-DEBUG = True
+DEBUG = False
 
 def info() -> typing.Dict:
     print("INFO")
@@ -60,16 +60,16 @@ def next_move(data: GameData) -> str:
     starting_length = 0
     if 3 <= data.length() <= 4:
         starting_length = 12
-    elif data.length() <= 12:
+    elif data.length() <= 10:
         starting_length = 10
     elif data.length() <= 15:
-        starting_length = 13
+        starting_length = 15
     elif data.length() <= 20:
         starting_length = 16
-    elif data.length() <= 25:
-        starting_length = 18
+    elif data.length() <= 24:
+        starting_length = 20
     elif data.length() <= 30:
-        starting_length = 22
+        starting_length = 24
     else:
         starting_length = 30
 
@@ -77,14 +77,14 @@ def next_move(data: GameData) -> str:
     if data.health <= starting_length and not GameData.isDisignated:
         simulator = Simulation(game_data = data, max_depth = data.health)
         simulator.route_search(data = data)
-        if simulator.result_tire1:
-            GameData.disignated_route = max(simulator.result_tire1, key = len)
+        if simulator.result_tier1:
+            GameData.disignated_route = max(simulator.result_tier1, key = len)
             print(f"Tire 1 route: {GameData.disignated_route}")
-        elif simulator.result_tire2:
-            GameData.disignated_route = max(simulator.result_tire2, key = len)
+        elif simulator.result_tier2:
+            GameData.disignated_route = max(simulator.result_tier2, key = len)
             print(f"Tire 2 route: {GameData.disignated_route}")
-        elif simulator.result_tire3:
-            GameData.disignated_route = max(simulator.result_tire3, key = len)
+        elif simulator.result_tier3:
+            GameData.disignated_route = max(simulator.result_tier3, key = len)
             print(f"Tire 3 route: {GameData.disignated_route}")
 
         if GameData.disignated_route:
@@ -113,10 +113,10 @@ def next_move(data: GameData) -> str:
 
     # ループを探す動作: 優先度5
     if GameData.status == Status.loop:
-        tire1 = []
-        tire2 = []
-        tire3 = []
-        tire4 = []
+        tier1 = []
+        tier2 = []
+        tier3 = []
+        tier4 = []
         distance = {"up": data.tail()[Y] - data.head()[Y],
                     "down": data.head()[Y] - data.tail()[Y],
                     "right": data.tail()[X] - data.head()[X],
@@ -129,23 +129,22 @@ def next_move(data: GameData) -> str:
             new_body.appendleft(next_head)
             if Reachable(bodies = new_body, foods = data.foods, width = GameData.board_width, height = GameData.board_height).is_reachable_food_avoidance(next_head, data.tail()):
                 if distance[move] > 0:
-                    tire1.append(move)
+                    tier1.append(move)
                 else:
-                    tire2.append(move)
+                    tier2.append(move)
             elif Reachable(bodies = new_body, foods = data.foods, width = GameData.board_width, height = GameData.board_height).is_reachable(next_head, data.tail()):
-                tire3.append(move)
                 if distance[move] > 0:
-                    tire3.append(move)
+                    tier3.append(move)
                 else:
-                    tire4.append(move)
-        if tire1:
-            next_move = max(tire1, key = lambda m: distance[m])
-        elif tire2:
-            next_move = random.choice(tire2)
-        elif tire3:
-            next_move = max(tire3, key = lambda m: distance[m]) 
-        elif tire4:
-            next_move = random.choice(tire4)
+                    tier4.append(move)
+        if tier1:
+            next_move = max(tier1, key = lambda m: distance[m])
+        elif tier2:
+            next_move = random.choice(tier2)
+        elif tier3:
+            next_move = max(tier3, key = lambda m: distance[m]) 
+        elif tier4:
+            next_move = random.choice(tier4)
         else:
             if data.heading() in data.no_foods():
                 next_move = data.heading()
@@ -160,7 +159,7 @@ def next_move(data: GameData) -> str:
 def move(game_state: typing.Dict) -> typing.Dict:
     data = GameData(game_state)
     next_move_result = next_move(data)
-    GameData.previous_foods = data.foods
+    GameData.previous_foods = set(data.foods)
     
     reachable_food_avoidance = []
     reachable = []

@@ -39,7 +39,7 @@ class GameData:
             #幅と高さの設定
             GameData.board_width = game_state["board"]["width"]
             GameData.board_height = game_state["board"]["height"]
-            GameData.previous_foods = set()
+            GameData.previous_foods = set((food["x"], food["y"]) for food in game_state["board"]["food"])
             GameData.status = Status.loop
             GameData.disignated_route = deque()
             GameData.isDisignated = False
@@ -71,11 +71,11 @@ class GameData:
         self.board = [[Type.safe.value] * (GameData.board_width) for _ in range(GameData.board_height)]
         # 体
         if self.length() < 3 or self.ate_food():
-            for i in range(self.length()):
-                self.board[self.bodies[i][Y]][self.bodies[i][X]] = self.length() - i + Type.body.value - 1  # 頭に近いほど値が大きい
+            for i, body in enumerate(self.bodies):
+                self.board[body[Y]][body[X]] = self.length() - i + Type.body.value - 1  # 頭に近いほど値が大きい
         else:
-            for i in range(self.length() - 1):
-                self.board[self.bodies[i][Y]][self.bodies[i][X]] = self.length() - i + Type.body.value - 2  # 頭に近いほど値が大きい
+            for i, body in enumerate(list(self.bodies)[:-1]):
+                self.board[body[Y]][body[X]] = self.length() - i + Type.body.value - 2  # 頭に近いほど値が大きい
         # 食べ物
         for food in self.foods:
             self.board[food[Y]][food[X]] = Type.food.value
@@ -115,13 +115,13 @@ class GameData:
     def empty_around(self):
         result = []
         head = self.head()
-        if 0 <= head[X] + 1 < GameData.board_width and self.board[head[Y]][head[X] + 1] <= Type.food.value:
+        if 0 <= head[X] + 1 < GameData.board_width and self.board[head[Y]][head[X] + 1] <= Type.safe.value:
             result.append("right")
-        if 0 <= head[Y] + 1 < GameData.board_height and self.board[head[Y] + 1][head[X]] <= Type.food.value:
+        if 0 <= head[Y] + 1 < GameData.board_height and self.board[head[Y] + 1][head[X]] <= Type.safe.value:
             result.append("up")
-        if 0 <= head[X] - 1 < GameData.board_width and self.board[head[Y]][head[X] - 1] <= Type.food.value:
+        if 0 <= head[X] - 1 < GameData.board_width and self.board[head[Y]][head[X] - 1] <= Type.safe.value:
             result.append("left")
-        if 0 <= head[Y] - 1 < GameData.board_height and self.board[head[Y] - 1][head[X]] <= Type.food.value:
+        if 0 <= head[Y] - 1 < GameData.board_height and self.board[head[Y] - 1][head[X]] <= Type.safe.value:
             result.append("down")
         return result
     

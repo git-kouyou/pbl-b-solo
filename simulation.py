@@ -4,9 +4,6 @@ from collections import deque
 from gamedata import GameData
 from reachable import Reachable
 
-Y = 1
-X = 0
-
 class Simulation:
     def __init__(self, game_data: GameData, max_depth: int) -> None:
         #シミュレーション用データ
@@ -14,9 +11,9 @@ class Simulation:
         #最大の経路
         self.max_depth = max_depth
         #経路探索結果
-        self.result_tire1 = []
-        self.result_tire2 = []
-        self.result_tire3 = []
+        self.result_tier1 = []
+        self.result_tier2 = []
+        self.result_tier3 = []
         #長さが3〜4のときの探索済み経路保存用
         self.dumped_route_34: typing.Dict[typing.Tuple[typing.Tuple[int, int], str], typing.Set[int]] = {}
 
@@ -38,13 +35,13 @@ class Simulation:
             new_foods.remove(data.head())
             if Reachable(bodies = data.bodies, foods = new_foods, width = GameData.board_width, height = GameData.board_height).is_reachable_food_avoidance(current_head, tail):
                 copied_route = route.copy()
-                self.result_tire1.append(copied_route)
+                self.result_tier1.append(copied_route)
             elif Reachable(bodies = data.bodies, foods = new_foods, width = GameData.board_width, height = GameData.board_height).is_reachable(current_head, tail):
                 copied_route = route.copy()
-                self.result_tire2.append(copied_route)    
-            else:
+                self.result_tier2.append(copied_route)    
+            elif data.safes_around():
                 copied_route = route.copy()
-                self.result_tire3.append(copied_route)
+                self.result_tier3.append(copied_route)
             data.bodies.pop()
             return
 
@@ -79,9 +76,8 @@ class Simulation:
             
             route.append(move)
 
-            if Reachable(bodies = data.bodies, foods = data.foods, width = self.game_data.board_width, height = self.game_data.board_height).is_reachable(next_head, data.tail()):
-                data.generate_board()
-                self.route_search(data = data, route = route)
+            data.generate_board()
+            self.route_search(data = data, route = route)
 
             route.pop()
             data.bodies.popleft()
